@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="theappfoundry.lifestyles.Login"
+    >
+
+
+    <Button
+        android:id="@+id/signInButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="59dp"
+        android:text="signIn"
+        android:layout_alignParentBottom="true"
+        android:layout_alignStart="@+id/passField"
+        android:layout_marginStart="15dp" />
+
+    <EditText
+        android:text="pass"
+        android:id="@+id/passField"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/signInButton"
+        android:layout_alignParentEnd="true"
+        android:layout_marginBottom="17dp"
+        android:layout_marginEnd="65dp"
+        android:ems="10"
+        android:inputType="textPassword" />
+
+    <EditText
+        android:text="email"
+        android:id="@+id/emailField"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/passField"
+        android:layout_alignStart="@+id/passField"
+        android:layout_marginBottom="12dp"
+        android:ems="10"
+        android:inputType="textEmailAddress" />
+
+    <EditText
+        android:id="@+id/editText3"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:ems="10"
+        android:inputType="textPersonName"
+        android:text="Name"
+        android:layout_above="@+id/emailField"
+        android:layout_alignEnd="@+id/emailField"
+        android:layout_marginBottom="27dp" />
+
+    <Button
+        android:id="@+id/signUpButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/passField"
+        android:layout_marginStart="16dp"
+        android:layout_toEndOf="@+id/signInButton"
+        android:text="Sign Up" />
+
+    <Button
+        android:id="@+id/writeButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Write"
+        android:layout_below="@+id/passField"
+        android:layout_toStartOf="@+id/signInButton" />
+
+    <Button
+        android:id="@+id/signOutButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/editText3"
+        android:layout_alignStart="@+id/writeButton"
+        android:layout_marginBottom="79dp"
+        android:layout_marginStart="30dp"
+        android:text="Sign Out" />
+
+</RelativeLayout>

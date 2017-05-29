@@ -1,0 +1,42 @@
+{
+  "project_info": {
+    "project_number": "542834493005",
+    "firebase_url": "https://lifestyles-734a0.firebaseio.com",
+    "project_id": "lifestyles-734a0",
+    "storage_bucket": "lifestyles-734a0.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:542834493005:android:ad057b0a1242019e",
+        "android_client_info": {
+          "package_name": "theappfoundry.lifestyles"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "542834493005-nl0rclv60190ocmfgar1rul1auccnr8m.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCLTdbyNgGltG40xTH1NJZCWoUSwzOgwxo"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 1,
+          "other_platform_oauth_client": []
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
