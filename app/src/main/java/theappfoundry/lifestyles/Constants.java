@@ -11,7 +11,7 @@ import java.util.HashMap;
 public class Constants {
 
 
-    public static final int GEOFENCE_RADIUS_IN_METERS = 50 ;
+    public static final int GEOFENCE_RADIUS_IN_METERS = 30;
 
     public static final int GEOFENCE_EXPIRATION_IN_HOURS = 24;
 

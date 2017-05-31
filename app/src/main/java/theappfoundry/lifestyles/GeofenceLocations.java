@@ -27,7 +27,9 @@ public class GeofenceLocations {
     private float right;
     private float bottom;
 
-    private HashMap<String, LatLng> Geofences = new HashMap<>();
+
+
+    public static HashMap<String, LatLng> Geofences = new HashMap<>();
 
 
     public static void convertAndAddGeofence(String key, float left, float top, float right, float bottom, GoogleMap myMap){
@@ -47,6 +49,13 @@ public class GeofenceLocations {
 
 
         drawGeofence(myMap, topLeftLL, topRightLL, bottomLeftLL, bottomRightLL);
+
+
+        double rectMidy = (bottomRightLL.latitude + topRightLL.latitude)/2;
+        double rectMidx = (topRightLL.longitude + topLeftLL.longitude)/2;
+
+        LatLng middleOfRect = new LatLng(rectMidy,rectMidx);
+        Geofences.put(key,middleOfRect);
     }
 
     /**

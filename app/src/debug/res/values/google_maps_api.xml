@@ -12,7 +12,8 @@
     6E:C7:F7:FF:9F:29:32:77:04:D7:15:46:0C:DE:8C:AE:FB:1E:47:69
 
     SHA-1 certificate fingerprint:
-    6E:C7:F7:FF:9F:29:32:77:04:D7:15:46:0C:DE:8C:AE:FB:1E:47:69
+    6E:C7:F7:FF:9F:29:32:77:04:D7:15:46:0C:DE:8C:AE:FB:1E:47:69 <- Find in Gradle Projects/RunConfig
+    double click signing report
 
     Alternatively, follow the directions here:
     https://developers.google.com/maps/documentation/android/start#get-key
@@ -21,6 +22,6 @@
     string in this file.
     -->
     <string name="google_maps_key" templateMergeStrategy="preserve" translatable="false">
-        AIzaSyDIPJPCh-cJbxPVeqzs1WzE-Mbccn2E3Do
+        AIzaSyBpA0MSAoYc8ZKSgVND6GWo3PfWh7Pf34U
     </string>
 </resources>

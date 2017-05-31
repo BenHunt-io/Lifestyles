@@ -2,25 +2,16 @@ package theappfoundry.lifestyles;
 
 import android.app.PendingIntent;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
-import android.graphics.drawable.Drawable;
 import android.graphics.drawable.ShapeDrawable;
 import android.graphics.drawable.shapes.RectShape;
-import android.graphics.drawable.shapes.Shape;
-import android.icu.text.DateFormat;
 import android.location.Location;
 import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.constraint.ConstraintLayout;
 import android.support.v4.app.ActivityCompat;
-import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
 //import android.support.v4.app.FragmentManager;
 import android.app.FragmentManager;
@@ -28,7 +19,6 @@ import android.app.FragmentManager;
 import android.app.FragmentTransaction;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.view.MotionEventCompat;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.util.TypedValue;
@@ -36,8 +26,6 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.Window;
 import android.widget.Button;
-import android.widget.EditText;
-import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -61,8 +49,6 @@ import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.MarkerOptions;
-import com.google.android.gms.maps.model.Polygon;
-import com.google.android.gms.maps.model.PolygonOptions;
 
 import org.w3c.dom.Text;
 
@@ -80,6 +66,8 @@ public class Geofencing extends FragmentActivity implements GoogleApiClient.Conn
     private float top;
     private float right;
     private float bot;
+
+    private int nameCounter;
 
     private ShapeDrawable mDrawable; // The geofence rectangle being drawn
 
@@ -171,8 +159,8 @@ public class Geofencing extends FragmentActivity implements GoogleApiClient.Conn
         buildGoogleApiClient(); // Makes an instance of the google API
 
         // Get the geofences used. Geofence data is hard coded in this sample.
-        populateGeofenceList(); // What geofences do I want added
-        getGeofencingRequest(); // specifies geofences, and how they should act
+        // populateGeofenceList(); // What geofences do I want added
+        // specifies geofences, and how they should act
 
 
         setBarHeights(); // see func. definition.
@@ -199,6 +187,8 @@ public class Geofencing extends FragmentActivity implements GoogleApiClient.Conn
     protected void onStart() {
         mGoogleApiClient.connect();
         super.onStart();
+
+
 
         confirmLocation.setVisibility(View.INVISIBLE);
 
@@ -266,10 +256,11 @@ public class Geofencing extends FragmentActivity implements GoogleApiClient.Conn
 
     // setFastestInterval() - This method sets the fastest rate in milliseconds at which your app
     // can handle location updates need to set this rate because other apps also affect the rate at
-    // which updates are sent
+    // which updates are sent... (GPS,WIFI, and CELLULAR) are used to calcualte location. WIFI is the
+    // slowest.
     protected void createLocationRequest() {
         mLocationRequest = new LocationRequest();
-        mLocationRequest.setInterval(10000);
+        mLocationRequest.setInterval(5000);
         mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
     }
 
@@ -306,7 +297,7 @@ public class Geofencing extends FragmentActivity implements GoogleApiClient.Conn
         // Map.Entry<String, LatLng> is the data type. Entry is essentially a container for
         // each entry in the STUDY_LOCATONS hashmap. It iterates through all of the entries and puts
         // them in the variable entry.
-        for (Map.Entry<String, LatLng> entry : Constants.STUDY_LOCATIONS.entrySet())
+        for (Map.Entry<String, LatLng> entry : GeofenceLocations.Geofences.entrySet())
             mGeofenceList.add(new Geofence.Builder()
                     // Set the request ID of the geofence. This is a string to identify this
                     // geofence.
@@ -320,9 +311,11 @@ public class Geofencing extends FragmentActivity implements GoogleApiClient.Conn
                     )
 
                     .setExpirationDuration(Constants.GEOFENCE_EXPIRATION_IN_MILLISECONDS)
+                    .setLoiteringDelay(10000) // 30 sesc till Initiali DWELL trigger is set off
 
 
-                    .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER | Geofence.GEOFENCE_TRANSITION_EXIT)
+                    .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER | Geofence.GEOFENCE_TRANSITION_EXIT
+                            | Geofence.GEOFENCE_TRANSITION_DWELL)
                     .build());
 
     }
@@ -335,7 +328,7 @@ public class Geofencing extends FragmentActivity implements GoogleApiClient.Conn
     // Dwell - User has to be in the geofence for a certain amount of time.
     private GeofencingRequest getGeofencingRequest() {
         GeofencingRequest.Builder builder = new GeofencingRequest.Builder();
-        builder.setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_DWELL);
+        builder.setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_DWELL | GeofencingRequest.INITIAL_TRIGGER_ENTER);
         builder.addGeofences(mGeofenceList);
         return builder.build();
     }
@@ -387,9 +380,9 @@ public class Geofencing extends FragmentActivity implements GoogleApiClient.Conn
      */
     @Override
     public void onMapReady(GoogleMap googleMap) {
-        googleMap.addMarker(new MarkerOptions()
-                .position(new LatLng(29.894529,-97.908082))
-                .title("Marker"));
+//        googleMap.addMarker(new MarkerOptions()
+//                .position(new LatLng(29.894529,-97.908082))
+//                .title("Marker"));
 
         myMap = googleMap; // googleMap holds a reference to myMap
 
@@ -431,6 +424,11 @@ public class Geofencing extends FragmentActivity implements GoogleApiClient.Conn
                     //                                          int[] grantResults)
                     // to handle the case where the user grants the permission. See the documentation
                     // for ActivityCompat#requestPermissions for more details.
+                    // The below statement requests permissions
+//                    ActivityCompat.requestPermissions(this,
+//                            new String[]{
+//                                    android.Manifest.permission.ACCESS_COARSE_LOCATION},
+//                            REQUEST_COURSE_ACCESS)
                     return true;
                 }
                 mLatitudeText = (String.valueOf(mCurrentLocation.getLatitude())); // get updated value
@@ -438,8 +436,12 @@ public class Geofencing extends FragmentActivity implements GoogleApiClient.Conn
                 Toast.makeText(this, mLatitudeText + " " + mLongitudeText, Toast.LENGTH_SHORT).show();
 
             } else if (i == R.id.addGeofenceButton) {
-                addGeofences();
-                return true;
+                if(GeofenceLocations.Geofences != null){
+                    populateGeofenceList(); // add the rectangle the user created to geofence list.
+                    // probably don't need.. It get's called in addGeofences getGeofencingRequest();
+                    addGeofences();
+                    return true;
+                }
             } else if (i == R.id.addMapButton) {
 
                 /**
@@ -492,7 +494,11 @@ public class Geofencing extends FragmentActivity implements GoogleApiClient.Conn
             }else if(i == R.id.confirmLocation){
                 confirmLocation.setVisibility(View.INVISIBLE);
                 myLinearLayout.removeAllViews();
-                GeofenceLocations.convertAndAddGeofence("test",left,top,right,bot,myMap);
+                GeofenceLocations.convertAndAddGeofence("Bens House",left,top,right,bot,myMap);
+
+                myMap.addMarker(new MarkerOptions()
+                        .position(GeofenceLocations.Geofences.get("Bens House"))
+                        .title("Marker"));
                 isDrawingGeofence = false;
                 return true;
             }
