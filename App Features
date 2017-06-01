@@ -1,0 +1,91 @@
+App Features:
+
+Maps
+___________________________________________________________________________________________________________
+- Users create their own geofences with dynamically changing shapes. [Circles,Rectangles]
+- Be able to change shape colors, transparency ect.
+- Use SQL as part of the data storage.
+- "Jump to address" - Users can quickly go to the location that they want to make a geofence at.
+- Change Map types.. (Hybrid/Satelite ect.)
+- Delete Geofences that they don't want. Also being able to click on current Geofences and edit them.
+- Add Tags and or Titles and or Symbols to the geofences being created.
+- Total time elapsed in geofence or small stats popup. Choose between Stats, Edit?
+- Button to turn on and off map scrolling (Switch between drawing geofences and scrolling the map)
+- Danger Zones - Set geofenced danger zones, places you don't want to go like Fast Food. Get rewarded for staying out
+of these zones. Make it auto Text a friend? Vibrate your phone and send warning notifications if you enter the zone. 
+Make a custom notification? Some kind of styling to signify 
+
+
+
+-Maybe Implement:
+~ 
+
+-Future Features:
++ HeatMap of where you are generally spending your time outside of the geofences that you create.
+_____________________________________________________________________________________________________________
+
+
+
+
+
+
+Customization
+_____________________________________________________________________________________________________________
+- Set Limits to how long you want to stay in certain geofenced areas. Could be permanent or temporary. Ex. Don't
+want to spend more than 2 hours at the square. [Permanent][Today][1Week][slider?]
+
+
+
+
+
+
+
+_____________________________________________________________________________________________________________
+
+
+Stats
+_____________________________________________________________________________________________________________
+- Store user data in firebase, private to their account
+- Overlap Geofence tracking data with productivity timers like POMODONE Timers ect. Ex. You can look at your geofencing
+data and see that you spent 8 hours at work, but then if you so desire you can set timers to see what exactly you were doing.
+Would be ideal to incorporate some kind of google chrome extension to monitor what your are looking at, again optional.
+
+
+
+
+Productivity Features
+____________________________________________________________________________________________________________
+
+- Have a library of timers.. from which you can add to different Geofenced locations
+- Create Custom lifestyles to live like. Celeberity lifestyles preset or your own.
+- Create Logs, Jot down notes 
+
+
+
+
+
+
+Pro Version
+__________________________________________________________________________________________________
+- Create Custom LifeStyle Templates or use preset Celebrity ones. (i.e. ELON MUSK!)
+
+
+
+
+
+
+___________________________________________________________________________________________________
+
+
+Pages
+___________________________________________________________________________________________________
+- Splash
+- Login
+- Main Activity [Have main activity change based on where you are currently?]
+- My locations/Specific Location/Stats & Graphs
+
+
+
+
+
+Possible names: Atronos,Cronus,Axis,Tracker 
