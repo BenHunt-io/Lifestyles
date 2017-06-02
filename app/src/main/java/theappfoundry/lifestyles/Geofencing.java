@@ -20,6 +20,9 @@ import android.app.FragmentTransaction;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.view.MotionEventCompat;
 import android.os.Bundle;
+import android.support.v7.app.ActionBar;
+import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.MotionEvent;
@@ -56,7 +59,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.Map;
 
-public class Geofencing extends FragmentActivity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationListener, ResultCallback<Status> , OnMapReadyCallback, GoogleMap.OnMapClickListener, View.OnTouchListener{
+public class Geofencing extends AppCompatActivity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationListener, ResultCallback<Status> , OnMapReadyCallback, GoogleMap.OnMapClickListener, View.OnTouchListener{
 
 
     /**
@@ -130,6 +133,15 @@ public class Geofencing extends FragmentActivity implements GoogleApiClient.Conn
         setContentView(R.layout.activity_geofencing);
 
         Log.d(TAG, "onCreate: ");
+
+        Toolbar myToolbar = (Toolbar)findViewById(R.id.my_toolbar);
+        setSupportActionBar(myToolbar); // sets toolbar as app bar for the activity
+        // Returns reference to an appcompat ActionBar object
+        ActionBar myActionBar = getSupportActionBar();
+
+
+        myActionBar.setDisplayHomeAsUpEnabled(true); // sets the up button on the action bar
+
 
 
         // Initially set the PendingIntent used in addGeofences() and removeGeofences() to null.
