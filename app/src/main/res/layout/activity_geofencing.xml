@@ -18,6 +18,8 @@
     tools:layout_editor_absoluteX="0dp">
 
 
+
+
     <!-- Elevation rep. by (Z-property) - visual appearnce of its shadow -->
     <android.support.v7.widget.Toolbar
         android:id="@+id/my_toolbar"
@@ -35,12 +37,23 @@
         android:layout_marginBottom="8dp"
         app:layout_constraintVertical_bias="0.0" />
 
+    <Button
+        android:id="@+id/locationButton"
+        android:layout_width="wrap_content"
+        android:layout_height="48dp"
+        android:text="Get Location"
+        app:layout_constraintBottom_toBottomOf="parent"
+        android:layout_marginBottom="59dp"
+        android:layout_marginLeft="35dp"
+        app:layout_constraintLeft_toLeftOf="parent"
+        android:layout_marginStart="35dp" />
+
     <TextView
         android:id="@+id/textView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="GeoFence"
-        tools:layout_editor_absoluteY="431dp"
+        tools:layout_editor_absoluteY="481dp"
         tools:layout_editor_absoluteX="52dp" />
 
     <TextView
@@ -48,7 +61,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="TextView"
-        tools:layout_editor_absoluteY="520dp"
+        tools:layout_editor_absoluteY="570dp"
         tools:layout_editor_absoluteX="35dp" />
 
     <TextView
@@ -56,7 +69,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="TextView"
-        tools:layout_editor_absoluteY="520dp"
+        tools:layout_editor_absoluteY="570dp"
         tools:layout_editor_absoluteX="103dp" />
 
     <Button
@@ -64,45 +77,32 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Add Geofences"
+        app:layout_constraintRight_toLeftOf="@+id/startGeoFencing"
+        android:layout_marginRight="23dp"
         app:layout_constraintBottom_toBottomOf="parent"
-        android:layout_marginBottom="54dp"
-        android:layout_marginLeft="28dp"
-        app:layout_constraintLeft_toLeftOf="parent"
-        android:layout_marginStart="28dp" />
+        android:layout_marginBottom="10dp" />
 
     <Button
         android:id="@+id/addMapButton"
         android:layout_width="88dp"
         android:layout_height="48dp"
         android:text="Maps"
+        android:layout_marginRight="32dp"
+        app:layout_constraintRight_toRightOf="@+id/quickLogContainer"
         app:layout_constraintBottom_toBottomOf="parent"
-        android:layout_marginBottom="41dp"
-        android:layout_marginRight="45dp"
-        app:layout_constraintRight_toRightOf="parent"
-        android:layout_marginEnd="45dp" />
+        android:layout_marginBottom="8dp" />
 
 
-    <Button
-        android:id="@+id/locationButton"
-        android:layout_width="wrap_content"
-        android:layout_height="48dp"
-        android:text="Get Location"
-        app:layout_constraintBottom_toBottomOf="parent"
-        android:layout_marginBottom="113dp"
-        android:layout_marginLeft="35dp"
-        app:layout_constraintLeft_toLeftOf="parent"
-        android:layout_marginStart="35dp" />
 
     <Button
         android:id="@+id/startGeoFencing"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Geofence"
-        android:layout_marginBottom="24dp"
-        app:layout_constraintBottom_toTopOf="@+id/addMapButton"
-        android:layout_marginRight="45dp"
-        app:layout_constraintRight_toRightOf="parent"
-        android:layout_marginEnd="45dp" />
+        app:layout_constraintRight_toLeftOf="@+id/addMapButton"
+        android:layout_marginRight="15dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        android:layout_marginBottom="8dp" />
 
 
     <Button
@@ -115,15 +115,13 @@
         app:layout_constraintRight_toRightOf="parent"
         android:layout_marginStart="50dp"
         app:layout_constraintHorizontal_bias="0.0"
-        android:layout_marginTop="-7dp"
         app:layout_constraintTop_toBottomOf="@+id/my_toolbar" />
 
     <LinearLayout
-        android:id="@+id/linearLayout3"
-
+        android:id="@+id/searchBarContainer"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:background="@color/light_blue_white"
+        android:background="@color/searchBar_gray"
         android:orientation="horizontal"
         app:layout_constraintBottom_toTopOf="@+id/mapLayout"
         app:layout_constraintHorizontal_bias="1.0"
@@ -134,19 +132,19 @@
     <LinearLayout
         android:id="@+id/mapLayout"
         android:layout_width="0dp"
-        android:layout_height="270dp"
+        android:layout_height="0dp"
         android:layout_alignParentEnd="true"
         android:layout_alignParentTop="true"
+        android:layout_marginBottom="0dp"
         android:layout_marginLeft="50dp"
         android:layout_marginStart="50dp"
         android:layout_marginTop="50dp"
         android:orientation="vertical"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintBottom_toBottomOf="@+id/rectangleLayout"
         app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="@+id/rectangleLayout"
-        app:layout_constraintVertical_bias="0.0"
-        app:layout_constraintTop_toBottomOf="@+id/my_toolbar"></LinearLayout>
+        app:layout_constraintTop_toTopOf="@+id/searchBarContainer"></LinearLayout>
 
     <ImageButton
         android:id="@+id/fillButton"
@@ -181,29 +179,44 @@
         android:layout_height="5dp"
         android:layout_alignParentStart="true"
         android:layout_centerVertical="true"
-        android:layout_marginLeft="0dp"
         android:translationZ="1dp"
         app:layout_constraintLeft_toLeftOf="parent"
         app:srcCompat="@drawable/map_tools_divider"
         android:layout_marginBottom="12dp"
         app:layout_constraintBottom_toTopOf="@+id/strokeButton" />
 
-    <RelativeLayout
-        android:id="@+id/rectangleLayout"
-        android:layout_width="0dp"
-        android:layout_height="270dp"
-        android:layout_marginLeft="50dp"
-        android:layout_marginStart="50dp"
-        android:layout_marginTop="50dp"
-        android:orientation="vertical"
-        app:layout_constraintBottom_toBottomOf="parent"
+    <android.support.constraint.ConstraintLayout
+        android:layout_width="388dp"
+        android:layout_height="50dp"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentTop="true"
+        android:layout_marginBottom="0dp"
+        android:layout_marginLeft="0dp"
+        android:layout_marginRight="0dp"
+        android:background="@color/toolBar_gray"
+        android:translationZ="0dp"
+        app:layout_constraintBottom_toTopOf="@+id/quickLogContainer"
         app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/my_toolbar"
-        app:layout_constraintVertical_bias="0.0">
+        android:id="@+id/bottomToolBarContainer">
 
-    </RelativeLayout>
+
+    </android.support.constraint.ConstraintLayout>
+
+    <android.support.constraint.ConstraintLayout
+        android:layout_width="400dp"
+        android:layout_height="59dp"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentEnd="true"
+        android:background="@color/quickBar_gray"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        android:id="@+id/quickLogContainer"
+        android:layout_marginBottom="-3dp">
+
+    </android.support.constraint.ConstraintLayout>
 
     <android.support.constraint.Guideline
         android:layout_width="wrap_content"
@@ -217,15 +230,33 @@
     <LinearLayout
         android:id="@+id/linearLayout"
         android:layout_width="0dp"
-        android:layout_height="320dp"
-        android:background="@color/light_blue_white"
+        android:layout_height="0dp"
+        android:layout_marginBottom="0dp"
+        android:background="@color/toolBar_gray"
         android:orientation="vertical"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintBottom_toTopOf="@+id/bottomToolBarContainer"
         app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toLeftOf="@+id/rectangleLayout"
-        app:layout_constraintTop_toTopOf="@+id/linearLayout3"
+        app:layout_constraintTop_toTopOf="@+id/searchBarContainer"
         app:layout_constraintVertical_bias="0.0"></LinearLayout>
+
+    <RelativeLayout
+        android:id="@+id/rectangleLayout"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginBottom="0dp"
+        android:layout_marginLeft="50dp"
+        android:layout_marginStart="50dp"
+        android:layout_marginTop="0dp"
+        android:orientation="vertical"
+        app:layout_constraintBottom_toTopOf="@+id/bottomToolBarContainer"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/mapLayout">
+
+    </RelativeLayout>
 
 
 </android.support.constraint.ConstraintLayout>
