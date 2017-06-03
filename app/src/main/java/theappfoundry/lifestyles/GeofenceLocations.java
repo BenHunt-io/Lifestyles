@@ -27,6 +27,13 @@ public class GeofenceLocations {
     private float right;
     private float bottom;
 
+    /**
+     * Need to update these colors with the Geofence drawn so that the polygon made with GMapsAPI
+     * is correct color.
+     */
+    public static int fillColor = 0;
+    public static int strokeColor;
+
 
 
     public static HashMap<String, LatLng> Geofences = new HashMap<>();
@@ -65,11 +72,19 @@ public class GeofenceLocations {
     public static void drawGeofence(GoogleMap myMap, LatLng topLeft, LatLng topRight, LatLng bottomLeft,
                              LatLng bottomRight){
 
+        fillColor = (fillColor &0x00FFFFFF);
+        fillColor = (fillColor |0xC0000000);
+
+//        fillColor = (fillColor & 0x00FFFFFF);
+//        int transparent = 255 / sliderVariable;
+//        fillColor |= (transparent << 24);
+
+
         // Instantiates a new Polygon object and adds points to define a rectangle
         PolygonOptions rectOptions = new PolygonOptions()
                 .add(bottomLeft, topLeft, topRight, bottomRight)
-                .fillColor(Color.argb(180, 110, 155, 229)) // a - aplha 0-225 transparent
-                .strokeColor(Color.rgb(59,91,142));
+                .fillColor(fillColor)// a - aplha 0-225 transparent
+                .strokeColor(strokeColor);
 
         // Get back the mutable Polygon, can edit polygon now, with setPoints() for ex.
         Polygon polygon = myMap.addPolygon(rectOptions);

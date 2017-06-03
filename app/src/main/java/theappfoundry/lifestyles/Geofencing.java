@@ -1,15 +1,18 @@
 package theappfoundry.lifestyles;
 
+import android.animation.ArgbEvaluator;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.drawable.ShapeDrawable;
 import android.graphics.drawable.shapes.RectShape;
 import android.location.Location;
+import android.provider.ContactsContract;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
@@ -29,6 +32,8 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.Window;
 import android.widget.Button;
+import android.widget.ImageButton;
+import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -59,7 +64,13 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.Map;
 
-public class Geofencing extends AppCompatActivity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationListener, ResultCallback<Status> , OnMapReadyCallback, GoogleMap.OnMapClickListener, View.OnTouchListener{
+import yuku.ambilwarna.AmbilWarnaDialog; // For Color Picker
+
+public class Geofencing extends AppCompatActivity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationListener, ResultCallback<Status> , OnMapReadyCallback, GoogleMap.OnMapClickListener, View.OnTouchListener, AmbilWarnaDialog.OnAmbilWarnaListener {
+
+
+    private LinearLayout searchBarContainer;
+    private LinearLayout leftToolBarContainer;
 
 
     /**
@@ -75,6 +86,7 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
     private ShapeDrawable mDrawable; // The geofence rectangle being drawn
 
     private Boolean isDrawingGeofence = false;
+    private Boolean fill; // checking to see if fill or stroke button was last clicked.
 
     private GoogleApiClient mGoogleApiClient;
     private String mLatitudeText;
@@ -86,6 +98,8 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
     private Button addGeofenceButton; // adds Geofences when clicked
     private Button startGeoFencingButton;
     private Button confirmLocation;
+    private ImageButton fillButton;  // fill bucket for Geofence
+    private ImageButton strokeButton; // stroke bucket for Geofence
 
     private Location mCurrentLocation; // holds references to location passed in, in onLocationChanged
     private LocationRequest mLocationRequest; // for a location request..
@@ -102,6 +116,14 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
 
     private CameraPosition cameraPosition; // position for camera to be
 
+    private AmbilWarnaDialog colorPicker; // ColorPicker for geofence
+
+    // Have to have resolved color to pass it into paint.setColor for the drawable..
+    // whatever color is currently selected by the user.. Light blue is default
+    private int currentFillColor;
+    private int currentStrokeColor;
+    // this is set in colorPicker onOk listener. Then currentColor = fill or Stroke..
+    private int currentColor;
 
     //////////////////////// Drawing Rectangle /////////////////////////////////////
 
@@ -153,6 +175,8 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
         addMapButton =  (Button) findViewById(R.id.addMapButton);
         startGeoFencingButton = (Button) findViewById(R.id.startGeoFencing);
         confirmLocation = (Button)findViewById(R.id.confirmLocation);
+        fillButton = (ImageButton)findViewById(R.id.fillButton);
+        strokeButton = (ImageButton)findViewById(R.id.strokeButton);
 
 
         locationButton.setOnTouchListener(this);
@@ -160,6 +184,10 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
         addMapButton.setOnTouchListener(this);
         startGeoFencingButton.setOnTouchListener(this);
         confirmLocation.setOnTouchListener(this);
+        fillButton.setOnTouchListener(this);
+        strokeButton.setOnTouchListener(this);
+
+        colorPicker = new AmbilWarnaDialog(this, Color.GREEN, this);
 
         latText = (TextView) findViewById(R.id.latText);
         longText = (TextView) findViewById(R.id.longText);
@@ -179,6 +207,17 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
         setColorPaint(); // For setting color of rectangle. Don't need to recreate
         myLinearLayout = (RelativeLayout)findViewById(R.id.rectangleLayout);
         mCustomDrawableView = new Geofencing.CustomDrawableView(this); // Make instan0-ce of CustomDrawableView
+
+        searchBarContainer = (LinearLayout)findViewById(R.id.searchBarContainer);
+        leftToolBarContainer = (LinearLayout)findViewById(R.id.leftToolBarContainer);
+
+
+        // Have to have resolved color to pass it into paint.setColor for the drawable..
+        // whatever color is currently selected by the user.. Light blue is default
+        currentColor = ContextCompat.getColor(this, R.color.color_line_dark_blue);
+        currentStrokeColor = ContextCompat.getColor(this, R.color.color_line_dark_blue);
+
+
 
 
     }
@@ -506,6 +545,8 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
             }else if(i == R.id.confirmLocation){
                 confirmLocation.setVisibility(View.INVISIBLE);
                 myLinearLayout.removeAllViews();
+                GeofenceLocations.fillColor = currentFillColor; // for GMaps Geofence Polygon
+                GeofenceLocations.strokeColor = currentStrokeColor; // same ^^
                 GeofenceLocations.convertAndAddGeofence("Bens House",left,top,right,bot,myMap);
 
                 myMap.addMarker(new MarkerOptions()
@@ -514,9 +555,51 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
                 isDrawingGeofence = false;
                 return true;
             }
+            else if(i == R.id.fillButton){
+                colorPicker.show();
+                fill = true;
+
+
+            }
+            else if(i == R.id.strokeButton){
+                colorPicker.show();
+                fill = false;
+
+            }
         }
         return false; // If false then no touch event has been consumed in OnTouch
 
+
+    }
+
+
+    /**
+     * User closes color picker dialog window. This is implementing
+     * AmbilWarnaDialog.OnAmbilWarnaListener
+     * @param dialog
+     */
+    @Override
+    public void onCancel(AmbilWarnaDialog dialog) {
+            // User cancels color picker.. do nothing
+    }
+
+    /**
+     * Recieve color selected. For changing Geofence color.
+     * @param dialog
+     * @param color   -- Color recieved.
+     */
+    @Override
+    public void onOk(AmbilWarnaDialog dialog, int color) {
+            //Recieve color selecter
+
+            if(fill){
+                currentFillColor = color;
+                fillButton.setBackgroundColor(color);
+            }
+            else{
+                currentStrokeColor = color;
+                strokeButton.setBackgroundColor(color);
+            }
 
     }
 
@@ -547,8 +630,9 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
 
 
 
-            this.width = event.getX();
-            this.height = event.getY() - (actionBarHeight + titleBarHeight);
+            this.width = event.getX() - (leftToolBarContainer.getWidth());
+            // Have to account for the things between the top of the screen and the top of drawing area
+            this.height = event.getY() - (actionBarHeight + titleBarHeight + searchBarContainer.getHeight());
 
 
 //            Testing to see if values are correct.
@@ -558,7 +642,10 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
 //            Log.d(TAG, "y: " + this.y);
 
 
-            mDrawable.getPaint().setColor(lightBlue); // Color of rectangle
+            //Methods that take a color in the form of an integer should be passed an RGB triple,
+            // not the actual color resource id. You must call getResources.getColor(resource).
+            // Deprecated.. now use ContextCompat.getColor(getContext(),your_color_id)
+            mDrawable.getPaint().setColor(currentFillColor); // Color of rectangle
             mDrawable.getPaint().setAlpha(150); // Transparency from 0-255
 
 
@@ -580,6 +667,8 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
                     Math.min(Math.round(y), Math.round(height)),
                     Math.max(Math.round(x), Math.round(width)),
                     Math.max(Math.round(y), Math.round(height)));
+
+            strokePaint.setColor(currentStrokeColor);
 
 
         }
@@ -664,11 +753,12 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
                 Log.d(TAG, "Action was DOWN");
                 // Rectangle may have been drawn somewhere else.
                 myLinearLayout.removeAllViews(); // remove old one
-                mCustomDrawableView.x = event.getX(); // Where finger is touching. update x,y
-                mCustomDrawableView.y = event.getY() - (actionBarHeight + titleBarHeight);
-                mCustomDrawableView.draw(event); // Might not need to2 call. No wid/height on// initial touch
-                myLinearLayout.addView(mCustomDrawableView);
-                myLinearLayout.bringToFront();
+                // Where finger is touching. update x,y
+                mCustomDrawableView.x = event.getX() - (leftToolBarContainer.getWidth());
+                mCustomDrawableView.y = event.getY() - (actionBarHeight + titleBarHeight + searchBarContainer.getHeight());
+//                mCustomDrawableView.draw(event); // Might not need to2 call. No wid/height on// initial touch
+//                myLinearLayout.addView(mCustomDrawableView);
+//                myLinearLayout.bringToFront();
                 return true;
             }
             else{
