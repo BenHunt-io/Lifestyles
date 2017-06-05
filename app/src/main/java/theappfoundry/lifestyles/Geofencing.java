@@ -11,10 +11,13 @@ import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.drawable.ShapeDrawable;
 import android.graphics.drawable.shapes.RectShape;
+import android.location.Geocoder;
 import android.location.Location;
 import android.provider.ContactsContract;
 import android.support.annotation.NonNull;
+import android.support.constraint.ConstraintLayout;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
 //import android.support.v4.app.FragmentManager;
 import android.app.FragmentManager;
@@ -40,6 +43,7 @@ import android.widget.Toast;
 
 import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.common.api.Status;
+import com.google.android.gms.identity.intents.Address;
 import com.google.android.gms.location.Geofence;
 import com.google.android.gms.location.GeofencingRequest;
 import com.google.android.gms.location.LocationListener;
@@ -48,6 +52,11 @@ import com.google.android.gms.location.LocationServices; // Had to put 2 depende
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.location.places.Place;
+import com.google.android.gms.location.places.ui.PlaceAutocompleteFragment;
+import com.google.android.gms.location.places.ui.PlaceSelectionListener;
+import com.google.android.gms.maps.CameraUpdate;
+import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.GoogleMapOptions;
 import com.google.android.gms.maps.MapFragment;
@@ -61,15 +70,19 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import org.w3c.dom.Text;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
+import java.util.Iterator;
+import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 
 import yuku.ambilwarna.AmbilWarnaDialog; // For Color Picker
 
-public class Geofencing extends AppCompatActivity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationListener, ResultCallback<Status> , OnMapReadyCallback, GoogleMap.OnMapClickListener, View.OnTouchListener, AmbilWarnaDialog.OnAmbilWarnaListener {
+public class Geofencing extends AppCompatActivity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationListener, ResultCallback<Status> , OnMapReadyCallback, GoogleMap.OnMapClickListener, View.OnTouchListener, AmbilWarnaDialog.OnAmbilWarnaListener, PlaceSelectionListener{
 
 
-    private LinearLayout searchBarContainer;
+    private ConstraintLayout searchBarContainer;
     private LinearLayout leftToolBarContainer;
 
 
@@ -107,12 +120,14 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
     private TextView latText; // To display location updates
     private TextView longText; // To display location updates
 
+    private PlaceAutocompleteFragment searchFragment;
+
     private FragmentManager fragmentManager;
     private FragmentTransaction fragmentTransaction;
     private MapFragment mapFragment;
 
     private GoogleMap myMap;
-
+    private GoogleMapOptions options;
 
     private CameraPosition cameraPosition; // position for camera to be
 
@@ -125,17 +140,19 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
     // this is set in colorPicker onOk listener. Then currentColor = fill or Stroke..
     private int currentColor;
 
+    Toolbar myToolbar; // custom toolbar.. use toolbar to set ActionBar
+    private int statusBarHeight; // Status bar - where the time and wifi is
+    public float actionBarHeight; // (Top Nav Bar)
+    private ActionBar myActionBar; // The top nav bar
     //////////////////////// Drawing Rectangle /////////////////////////////////////
 
     private CustomDrawableView mCustomDrawableView; // Extends view and makes the rectangle.
-    private RelativeLayout myLinearLayout;
-
-    public float actionBarHeight;
-    public float titleBarHeight;
+    private RelativeLayout myRectLayout;
 
     private Rect outline; // Making rectangle outline
     private Paint strokePaint; // For rectangle outline color, thickness (stroke)
     private Paint paint; // setting fill color of rectangle.
+
 
 
 
@@ -154,12 +171,14 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_geofencing);
 
+        setStatusBarHeight();
+
         Log.d(TAG, "onCreate: ");
 
-        Toolbar myToolbar = (Toolbar)findViewById(R.id.my_toolbar);
+        myToolbar = (Toolbar)findViewById(R.id.my_toolbar);
         setSupportActionBar(myToolbar); // sets toolbar as app bar for the activity
         // Returns reference to an appcompat ActionBar object
-        ActionBar myActionBar = getSupportActionBar();
+        myActionBar = getSupportActionBar();
 
 
         myActionBar.setDisplayHomeAsUpEnabled(true); // sets the up button on the action bar
@@ -205,10 +224,10 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
 
         setBarHeights(); // see func. definition.
         setColorPaint(); // For setting color of rectangle. Don't need to recreate
-        myLinearLayout = (RelativeLayout)findViewById(R.id.rectangleLayout);
+        myRectLayout = (RelativeLayout)findViewById(R.id.rectangleLayout);
         mCustomDrawableView = new Geofencing.CustomDrawableView(this); // Make instan0-ce of CustomDrawableView
 
-        searchBarContainer = (LinearLayout)findViewById(R.id.searchBarContainer);
+        searchBarContainer = (ConstraintLayout)findViewById(R.id.searchBarContainer);
         leftToolBarContainer = (LinearLayout)findViewById(R.id.leftToolBarContainer);
 
 
@@ -216,6 +235,11 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
         // whatever color is currently selected by the user.. Light blue is default
         currentColor = ContextCompat.getColor(this, R.color.color_line_dark_blue);
         currentStrokeColor = ContextCompat.getColor(this, R.color.color_line_dark_blue);
+
+        PlaceAutocompleteFragment searchFragment = (PlaceAutocompleteFragment)
+                getFragmentManager().findFragmentById(R.id.place_autocomplete_fragment);
+
+        searchFragment.setOnPlaceSelectedListener(this); // to recieve the place that the user searches for
 
 
 
@@ -504,7 +528,7 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
                         .build(); // returns a cameraPosition instance
 
 
-                GoogleMapOptions options = new GoogleMapOptions(); // options for map
+                options = new GoogleMapOptions(); // options for map
 
                 /**
                  * Specify GoogleMapOptions.. Can add more!
@@ -544,7 +568,7 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
 
             }else if(i == R.id.confirmLocation){
                 confirmLocation.setVisibility(View.INVISIBLE);
-                myLinearLayout.removeAllViews();
+                myRectLayout.removeAllViews();
                 GeofenceLocations.fillColor = currentFillColor; // for GMaps Geofence Polygon
                 GeofenceLocations.strokeColor = currentStrokeColor; // same ^^
                 GeofenceLocations.convertAndAddGeofence("Bens House",left,top,right,bot,myMap);
@@ -605,6 +629,44 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
 
 
     /**
+     * After a user selects an address/place
+     * @param place - the place that the user searched for.
+     */
+    @Override
+    public void onPlaceSelected(Place place) {
+
+        LatLng jumpToAddress = getGeoLocationFromAddress(place.getAddress().toString());
+        Log.d(TAG, "onPlaceSelected: " + jumpToAddress.latitude + " " + jumpToAddress.longitude);
+
+        // Update Camera Position with new Longitude Latitude
+        CameraPosition newCameraPosition = new CameraPosition.Builder()
+                .target(jumpToAddress)
+                .zoom(20)
+                .build();
+        myMap.moveCamera(CameraUpdateFactory.newCameraPosition(newCameraPosition));
+
+//        CameraUpdate cameraUpdate = new CameraUpdate()
+//        myMap.moveCamera();
+//        CameraPosition newPosition = CameraPosition.builder()
+//                .target(jumpToAddress) // Where? Lat/Long
+//                .zoom(19) // Increasing zoom size, doubles width of visible world
+//                .build(); // returns a cameraPosition instance
+//
+//        /**
+//         * Specify GoogleMapOptions.. Can add more!
+//         */
+//        options.camera(newPosition);
+
+
+    }
+
+    @Override
+    public void onError(Status status) {
+
+    }
+
+
+    /**
      * Makes the CustomDrawableView ( The rectangle ) Has all the rectangles attributes as variables
      * These attributes are updated within it's draw method that is called when a MotionEvent occurs
      * Inside the draw method the rectangle and it's outline (stroke) are also created.
@@ -632,7 +694,11 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
 
             this.width = event.getX() - (leftToolBarContainer.getWidth());
             // Have to account for the things between the top of the screen and the top of drawing area
-            this.height = event.getY() - (actionBarHeight + titleBarHeight + searchBarContainer.getHeight());
+            this.height = event.getY() - (actionBarHeight + statusBarHeight + searchBarContainer.getHeight());
+            Log.d(TAG, "draw: " + actionBarHeight + " " + statusBarHeight + " " + searchBarContainer.getHeight());
+            Log.d(TAG, "draw: " + height);
+            Log.d(TAG, "draw: " + y);
+
 
 
 //            Testing to see if values are correct.
@@ -678,12 +744,17 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
          * Callback function for extending a view. Where stuff will be drawn onto the screen
          * @param canvas - Have to draw through this canvas, which is actually being drawn on
          *               whatever bitmap that is passed to the canvas (Done automatically
+         *               Canvas size is based on the layout that it's being drawn in.. For example
+         *               on my Note 3 the Rectangle layout is 1206px high, so is the canvas!
          */
         @Override
         protected void onDraw(Canvas canvas) {
+            Log.d(TAG, "onDraw: MapLayout" + getHeight());
+            Log.d(TAG, "onDraw: " + canvas.getHeight() );
             mDrawable.draw(canvas); // canvas handles what to draw.
             // Canvas acts like a pen, drawsRect onto bitmap
             canvas.drawRect(outline, strokePaint);
+
 
         }
 
@@ -699,22 +770,28 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
      * whole screen but the LinearLayout that the view (CustomViewDrawable) is being placed in
      * is not the whole screen. --- Calculate Activity Bar & Status Bar heights
      */
+
+
+
     public void setBarHeights() {
+
+        //actionBarHeight = myActionBar.getHeight();
+
 
         TypedValue tv = new TypedValue();
         if (getTheme().resolveAttribute(android.R.attr.actionBarSize, tv, true)) {
             actionBarHeight = TypedValue.complexToDimensionPixelSize(tv.data, getResources().getDisplayMetrics());
         }
-
-        Rect rectangle = new Rect();
-        Window window = getWindow();
-        window.getDecorView().getWindowVisibleDisplayFrame(rectangle);
-        int statusBarHeight = rectangle.top;
-        int contentViewTop =
-                window.findViewById(Window.ID_ANDROID_CONTENT).getTop();
-        titleBarHeight = contentViewTop - statusBarHeight;
-
-        Log.d(TAG, "setBarHeights: " + titleBarHeight);
+//
+//        Rect rectangle = new Rect();
+//        Window window = getWindow();
+//        window.getDecorView().getWindowVisibleDisplayFrame(rectangle);
+//        int statusBarHeight = rectangle.top;
+//        int contentViewTop =
+//                window.findViewById(Window.ID_ANDROID_CONTENT).getTop();
+//        titleBarHeight = contentViewTop - statusBarHeight;
+//
+//        Log.d(TAG, "setBarHeights: " + titleBarHeight);
 
     }
 
@@ -742,9 +819,11 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
         if(action == MotionEvent.ACTION_DOWN) {
 
             //Making a region where we can deterimine if the click was on GoogleMaps or not
-            Rect rect = new Rect(0, 0, myLinearLayout.getWidth(), myLinearLayout.getHeight());
+            //Same region that holds the canvas tp draw the rectangle
+            Rect rect = new Rect(leftToolBarContainer.getWidth(), ((int)actionBarHeight + searchBarContainer.getHeight() + statusBarHeight), myRectLayout.getWidth(), myRectLayout.getHeight());
             if (rect.contains((int) event.getX(), (int) event.getY())) {
                 isInSideClicked = true;
+                Log.d(TAG, "dispatchTouchEvent: inside clicked");
             }
             else isInSideClicked = false; // Reset
 
@@ -752,10 +831,10 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
 
                 Log.d(TAG, "Action was DOWN");
                 // Rectangle may have been drawn somewhere else.
-                myLinearLayout.removeAllViews(); // remove old one
+                myRectLayout.removeAllViews(); // remove old one
                 // Where finger is touching. update x,y
                 mCustomDrawableView.x = event.getX() - (leftToolBarContainer.getWidth());
-                mCustomDrawableView.y = event.getY() - (actionBarHeight + titleBarHeight + searchBarContainer.getHeight());
+                mCustomDrawableView.y = event.getY() - (actionBarHeight + statusBarHeight + searchBarContainer.getHeight());
 //                mCustomDrawableView.draw(event); // Might not need to2 call. No wid/height on// initial touch
 //                myLinearLayout.addView(mCustomDrawableView);
 //                myLinearLayout.bringToFront();
@@ -771,10 +850,10 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
                 Log.d(TAG, "isdraw " + isDrawingGeofence);
                 if (isDrawingGeofence) {
                     Log.d(TAG, "Action was MOVE");
-                    myLinearLayout.removeAllViews(); // remove old drawn rectangle from LinearLayout
+                    myRectLayout.removeAllViews(); // remove old drawn rectangle from LinearLayout
                     mCustomDrawableView.draw(event); // draw new rectangle passing in the MotionEvent
-                    myLinearLayout.addView(mCustomDrawableView); //Once it's been drawn.. add to LinearLayout
-                    myLinearLayout.bringToFront();
+                    myRectLayout.addView(mCustomDrawableView); //Once it's been drawn.. add to LinearLayout
+                    myRectLayout.bringToFront();
 
                     return true;
                 } else {
@@ -817,6 +896,41 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
         strokePaint.setARGB(125, 51, 89, 150);
         strokePaint.setStyle(Paint.Style.STROKE);
         strokePaint.setStrokeWidth(10);
+    }
+
+    public void setStatusBarHeight(){
+
+        statusBarHeight = (int) (24* getResources().getDisplayMetrics().density);
+
+    }
+
+
+    LatLng getGeoLocationFromAddress(String strAddress){
+
+
+        List<android.location.Address> address;// store the converted address
+        Geocoder coder = new Geocoder(this); // to retrieve latlong from an address
+        LatLng cordinates = null;
+
+        try {
+            Log.d(TAG, "getGeoLocationFromAddress: " + strAddress);
+            address = coder.getFromLocationName(strAddress, 5);
+            Log.d(TAG, "getLocationFromAddress");
+            for(int i = 0; i < address.size(); i++){
+                if(address.get(i).hasLatitude() && address.get(i).hasLongitude()){
+                    cordinates = new LatLng(address.get(i).getLatitude(),
+                            address.get(i).getLongitude());
+                    Log.d(TAG, "getGeoLocationFromAddress: " + address.get(i).getLatitude());
+                }
+            }
+            Log.d(TAG, "getGeoLocationFromAddress: dsmfksdfklsdflksdlkfmsdlkf");
+        }catch (Exception e){
+
+        }
+
+
+
+        return cordinates;
     }
 
 
