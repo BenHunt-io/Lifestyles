@@ -12,4 +12,12 @@
     <color name="toolBar_gray">#585858</color>
     <color name="searchBar_gray">#2f302f</color>
     <color name="quickBar_gray">#d1d1d1</color>
+
+
+    <color name="dialogWindowBackground">#dfdfdf</color>
+    <color name="bottomTopDialogColor">#d1d1d1</color>
+    <color name="android_blue">#0471ce</color>
+    <color name="dark_gray">#2f302f</color>
+    <color name="selected_red">#d94444</color>
+
 </resources>

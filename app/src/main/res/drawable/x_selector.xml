@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item android:drawable="@drawable/thick_gray_x"
+        android:state_enabled="true"
+        android:state_pressed="false"></item>
+
+    <item android:drawable="@drawable/thick_red_x"
+        android:state_pressed="true"></item>
+
+</selector>

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- LayerList drawables are drawn in order. Last element on top -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+
+
+
+    <item>
+        <shape android:shape="rectangle">
+            <stroke android:color="@color/dark_gray"
+                android:width="2dp"></stroke>
+        </shape>
+    </item>
+
+    <!-- Moves bottom (Gray rectangle) up 1 px to show the blue rectangle underneah -->
+    <item android:bottom="2dp">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/bottomTopDialogColor"></solid>
+            <size android:width="10dp"
+                android:height="3dp"></size>
+        </shape>
+    </item>
+
+
+
+</layer-list>

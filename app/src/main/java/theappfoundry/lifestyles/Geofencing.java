@@ -16,7 +16,9 @@ import android.location.Location;
 import android.provider.ContactsContract;
 import android.support.annotation.NonNull;
 import android.support.constraint.ConstraintLayout;
+import android.support.constraint.ConstraintSet;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.DialogFragment;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
 //import android.support.v4.app.FragmentManager;
@@ -31,10 +33,13 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.util.TypedValue;
+import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.Window;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
@@ -79,7 +84,7 @@ import java.util.Map;
 
 import yuku.ambilwarna.AmbilWarnaDialog; // For Color Picker
 
-public class Geofencing extends AppCompatActivity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationListener, ResultCallback<Status> , OnMapReadyCallback, GoogleMap.OnMapClickListener, View.OnTouchListener, AmbilWarnaDialog.OnAmbilWarnaListener, PlaceSelectionListener{
+public class Geofencing extends AppCompatActivity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationListener, ResultCallback<Status> , OnMapReadyCallback, GoogleMap.OnMapClickListener, View.OnTouchListener, AmbilWarnaDialog.OnAmbilWarnaListener, PlaceSelectionListener, DialogWindowPopUp.NoticeDialogListener {
 
 
     private ConstraintLayout searchBarContainer;
@@ -126,6 +131,8 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
     private FragmentTransaction fragmentTransaction;
     private MapFragment mapFragment;
 
+    private android.support.v4.app.FragmentManager dialogFragmentManager;
+
     private GoogleMap myMap;
     private GoogleMapOptions options;
 
@@ -148,6 +155,7 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
 
     private CustomDrawableView mCustomDrawableView; // Extends view and makes the rectangle.
     private RelativeLayout myRectLayout;
+    private ConstraintLayout mapLayout;
 
     private Rect outline; // Making rectangle outline
     private Paint strokePaint; // For rectangle outline color, thickness (stroke)
@@ -182,6 +190,8 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
 
 
         myActionBar.setDisplayHomeAsUpEnabled(true); // sets the up button on the action bar
+
+        myActionBar.setTitle("CRONOS"); // Set Title :)
 
 
 
@@ -224,7 +234,7 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
 
         setBarHeights(); // see func. definition.
         setColorPaint(); // For setting color of rectangle. Don't need to recreate
-        myRectLayout = (RelativeLayout)findViewById(R.id.rectangleLayout);
+        myRectLayout = (RelativeLayout) findViewById(R.id.rectangleLayout);
         mCustomDrawableView = new Geofencing.CustomDrawableView(this); // Make instan0-ce of CustomDrawableView
 
         searchBarContainer = (ConstraintLayout)findViewById(R.id.searchBarContainer);
@@ -240,6 +250,8 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
                 getFragmentManager().findFragmentById(R.id.place_autocomplete_fragment);
 
         searchFragment.setOnPlaceSelectedListener(this); // to recieve the place that the user searches for
+
+        dialogFragmentManager = getSupportFragmentManager();
 
 
 
@@ -566,18 +578,46 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
                 Log.d(TAG, "BENNY" + isDrawingGeofence);
                 return true;
 
-            }else if(i == R.id.confirmLocation){
+            }else if(i == R.id.confirmLocation || i == R.id.imageButton){
+                Log.d(TAG, "onTouch: sdsdsdasld");
                 confirmLocation.setVisibility(View.INVISIBLE);
                 myRectLayout.removeAllViews();
                 GeofenceLocations.fillColor = currentFillColor; // for GMaps Geofence Polygon
                 GeofenceLocations.strokeColor = currentStrokeColor; // same ^^
                 GeofenceLocations.convertAndAddGeofence("Bens House",left,top,right,bot,myMap);
 
+                // Center Marker for geofence
                 myMap.addMarker(new MarkerOptions()
                         .position(GeofenceLocations.Geofences.get("Bens House"))
                         .title("Marker"));
+
+                //DialogWindowPopUp.instantiate(this, "DialogWindow");
+
+
+                // New instance
+                final DialogWindowPopUp dialogWindow = new DialogWindowPopUp();
+
+
+                /**
+                 *  This is a convenience for explicitly creating a transaction, adding the fragment to it
+                 *  with the given tag, and committing it. This does not add the transaction to the back
+                 *  stack. When the fragment is dismissed, a new transaction will be executed to remove it
+                 *  from the activity.
+                 */
+                dialogWindow.show(dialogFragmentManager,"test");
+
+
+
+
+
                 isDrawingGeofence = false;
                 return true;
+            }
+            // If it's cancel button.. remove drawn geofence.
+            else if(i == R.id.create_delete_selector){
+                myRectLayout.removeAllViews();
+                return true;
+
             }
             else if(i == R.id.fillButton){
                 colorPicker.show();
@@ -636,14 +676,19 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
     public void onPlaceSelected(Place place) {
 
         LatLng jumpToAddress = getGeoLocationFromAddress(place.getAddress().toString());
-        Log.d(TAG, "onPlaceSelected: " + jumpToAddress.latitude + " " + jumpToAddress.longitude);
 
         // Update Camera Position with new Longitude Latitude
-        CameraPosition newCameraPosition = new CameraPosition.Builder()
-                .target(jumpToAddress)
-                .zoom(20)
-                .build();
-        myMap.moveCamera(CameraUpdateFactory.newCameraPosition(newCameraPosition));
+        if(jumpToAddress != null) {
+            Log.d(TAG, "onPlaceSelected: " + jumpToAddress.latitude);
+            CameraPosition newCameraPosition = new CameraPosition.Builder()
+                    .target(jumpToAddress)
+                    .zoom(20)
+                    .build();
+            myMap.moveCamera(CameraUpdateFactory.newCameraPosition(newCameraPosition));
+        }
+        else{
+            Toast.makeText(this, "Address not found", Toast.LENGTH_SHORT).show();
+        }
 
 //        CameraUpdate cameraUpdate = new CameraUpdate()
 //        myMap.moveCamera();
@@ -868,10 +913,44 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
             right = Math.max(Math.round(mCustomDrawableView.x), Math.round(mCustomDrawableView.width));
             bot =  Math.max(Math.round(mCustomDrawableView.y), Math.round(mCustomDrawableView.height));
 
+
             if(isDrawingGeofence) {
-                confirmLocation.setVisibility(View.VISIBLE);
+
+                // confirmLocation.setVisibility(View.VISIBLE);
                 isDrawingGeofence = false;
+
+                LayoutInflater inflater = getLayoutInflater();
+                // Inflate the create/delete dialog popup for when users make geofence, do not want
+                // to attach to root (myRectLayout) yet, hence the false
+                ConstraintLayout myView = (ConstraintLayout) inflater.inflate(R.layout.create_delete_dialog, myRectLayout, false);
+
+                // Instantiate layoutParams object
+                RelativeLayout.LayoutParams buttonParams = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+
+                /**
+                 * Since the rectangles real width and height take up the entire parent layout I can't
+                 * use it as reference in the relative layout. However, since I have bounds at which the
+                 * rectangle is drawn on the canvas, then I can use margins to position the button relative
+                 * to the rectangle.
+                 */
+                buttonParams.topMargin = (int) top;
+                buttonParams.leftMargin = (int) left;
+
+                myRectLayout.addView(myView, buttonParams);
+
+                myView.setId(R.id.createDeleteButton);
+                mCustomDrawableView.setId(R.id.myRectangle);
+
+                Log.d(TAG, "dispatchTouchEvent: ");
+
+                LinearLayout anotherView = (LinearLayout) myView.getChildAt(0);
+
+                // For all the children in the Linear Inflated layout, set an onTouch listener
+                for(int i = 0; i<anotherView.getChildCount(); i++){
+                    anotherView.getChildAt(i).setOnTouchListener(this);
+                }
             }
+
 
             Log.d(TAG, "Left: " + left + " Top: " + top + " Right: " + right + "Bottom: " + bot);
 
@@ -932,6 +1011,25 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
 
         return cordinates;
     }
+
+
+    /**
+     * Callback function for the dialog pop-up. Get information from user selections in the dialog
+     * here. This is the interface communicating between the dialog and the activity
+     * @param dialog - Dialog window that was closed
+     */
+    @Override
+    public void onDialogPositiveClick(DialogFragment dialog) {
+        Log.d(TAG, "onDialogPositiveClick: was clicked");
+        EditText nameField  = (EditText) dialog.getDialog().findViewById(R.id.nameField);
+        Log.d(TAG, "onDialogPositiveClick: " + nameField.getText().toString());
+    }
+
+    @Override
+    public void onDialogNegativeClick(DialogFragment dialog) {
+        Log.d(TAG, "onDialogNegativeClick: was clicked");
+    }
+
 
 
 

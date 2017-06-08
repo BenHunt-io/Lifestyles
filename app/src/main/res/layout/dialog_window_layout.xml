@@ -1,0 +1,293 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    tools:layout_editor_absoluteY="81dp"
+    tools:layout_editor_absoluteX="0dp">
+
+
+    <android.support.constraint.ConstraintLayout
+        android:id="@+id/constraintLayout"
+        android:layout_width="297dp"
+        android:layout_height="347dp"
+        android:background="@color/dialogWindowBackground"
+        tools:layout_editor_absoluteY="2dp"
+        tools:layout_editor_absoluteX="0dp">
+
+        <TextView
+            android:id="@+id/timeText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="36dp"
+            android:layout_marginStart="43dp"
+            android:layout_marginTop="10dp"
+            android:text="Time Limit: 00:00"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/nameField" />
+
+        <ToggleButton
+            android:id="@+id/timeLimitToggle"
+            android:layout_width="91dp"
+            android:layout_height="39dp"
+            android:background="@drawable/button_toggle_selector"
+            android:text="ToggleButton"
+            app:layout_constraintBottom_toBottomOf="@+id/minutePicker"
+            app:layout_constraintRight_toRightOf="@+id/nameField"
+            app:layout_constraintTop_toTopOf="@+id/minutePicker"
+            android:layout_marginRight="0dp"
+            app:layout_constraintVertical_bias="0.483" />
+
+        <NumberPicker
+            android:id="@+id/hourPicker"
+            android:layout_width="55dp"
+            android:layout_height="75dp"
+            android:layout_marginBottom="8dp"
+            android:layout_marginLeft="32dp"
+            app:layout_constraintBottom_toTopOf="@+id/horizontalScrollView2"
+            app:layout_constraintLeft_toLeftOf="parent"></NumberPicker>
+
+        <NumberPicker
+            android:id="@+id/minutePicker"
+            android:layout_width="55dp"
+            android:layout_height="75dp"
+            android:layout_marginBottom="8dp"
+            android:layout_marginEnd="8dp"
+            android:layout_marginLeft="2dp"
+            android:layout_marginRight="8dp"
+            android:layout_marginStart="2dp"
+            app:layout_constraintBottom_toTopOf="@+id/horizontalScrollView2"
+            app:layout_constraintHorizontal_bias="0.0"
+            app:layout_constraintLeft_toRightOf="@+id/hourPicker"
+            app:layout_constraintRight_toLeftOf="@+id/timeLimitToggle"
+            tools:layout_editor_absoluteY="120dp"></NumberPicker>
+
+        <HorizontalScrollView
+            android:layout_width="0dp"
+            android:layout_height="50dp"
+            android:layout_marginLeft="0dp"
+            android:layout_marginRight="0dp"
+            app:layout_constraintBottom_toTopOf="@+id/bottomDialogContainer"
+            app:layout_constraintHorizontal_bias="0.0"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintRight_toRightOf="parent"
+            android:layout_marginBottom="0dp"
+            android:id="@+id/horizontalScrollView2">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:orientation="horizontal">
+
+                <RadioGroup
+                    android:id="@+id/imagePicker"
+                    android:orientation="horizontal"
+                    android:layout_gravity="center_vertical"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" >
+
+                    <RadioButton
+                        android:id="@+id/radioButton8"
+                        android:layout_width="50dp"
+                        android:layout_height="35dp"
+                        android:layout_marginLeft="5dp"
+                        android:layout_marginRight="5dp"
+                        android:layout_weight="1"
+                        android:adjustViewBounds="true"
+                        android:background="@drawable/image_button_selector"
+                        android:button="@null"
+                        android:gravity="center_vertical"
+                        android:scaleType="fitXY" />
+
+                    <RadioButton
+                        android:id="@+id/radioButton9"
+                        android:layout_width="50dp"
+                        android:layout_height="35dp"
+                        android:layout_marginLeft="5dp"
+                        android:layout_marginRight="5dp"
+                        android:layout_weight="1"
+                        android:adjustViewBounds="true"
+                        android:background="@drawable/image_button_selector"
+                        android:button="@null"
+                        android:gravity="center_vertical"
+                        android:scaleType="fitXY" />
+
+                    <RadioButton
+                        android:id="@+id/radioButton10"
+                        android:layout_width="50dp"
+                        android:layout_height="35dp"
+                        android:layout_marginLeft="5dp"
+                        android:layout_marginRight="5dp"
+                        android:layout_weight="1"
+                        android:adjustViewBounds="true"
+                        android:background="@drawable/image_button_selector"
+                        android:button="@null"
+                        android:gravity="center_vertical"
+                        android:scaleType="fitXY" />
+
+                    <RadioButton
+                        android:id="@+id/radioButton11"
+                        android:layout_width="50dp"
+                        android:layout_height="35dp"
+                        android:layout_marginLeft="5dp"
+                        android:layout_marginRight="5dp"
+                        android:layout_weight="1"
+                        android:adjustViewBounds="true"
+                        android:background="@drawable/image_button_selector"
+                        android:button="@null"
+                        android:gravity="center_vertical"
+                        android:scaleType="fitXY" />
+
+                    <RadioButton
+                        android:id="@+id/radioButton6"
+                        android:layout_width="50dp"
+                        android:layout_height="35dp"
+                        android:layout_marginLeft="5dp"
+                        android:layout_marginRight="5dp"
+                        android:layout_weight="1"
+                        android:adjustViewBounds="true"
+                        android:background="@drawable/image_button_selector"
+                        android:button="@null"
+                        android:gravity="center_vertical"
+                        android:scaleType="fitXY" />
+
+                    <RadioButton
+                        android:id="@+id/radioButton7"
+                        android:layout_width="50dp"
+                        android:layout_height="35dp"
+                        android:layout_marginLeft="5dp"
+                        android:layout_marginRight="5dp"
+                        android:layout_weight="1"
+                        android:adjustViewBounds="true"
+                        android:background="@drawable/image_button_selector"
+                        android:button="@null"
+                        android:gravity="center_vertical"
+                        android:scaleType="fitXY" />
+
+                    <RadioButton
+                        android:gravity="center_vertical"
+                        android:background="@drawable/image_button_selector"
+                        android:button="@null"
+                        android:scaleType="fitXY"
+                        android:adjustViewBounds="true"
+                        android:id="@+id/radioButton"
+                        android:layout_width="50dp"
+                        android:layout_height="35dp"
+                        android:layout_weight="1"
+                        android:layout_marginRight="5dp"
+                        android:layout_marginLeft="5dp"/>
+
+                    <RadioButton
+                        android:id="@+id/radioButton5"
+                        android:layout_width="50dp"
+                        android:layout_height="35dp"
+                        android:layout_marginLeft="5dp"
+                        android:layout_marginRight="5dp"
+                        android:layout_weight="1"
+                        android:adjustViewBounds="true"
+                        android:background="@drawable/image_button_selector"
+                        android:button="@null"
+                        android:gravity="center_vertical"
+                        android:scaleType="fitXY" />
+
+                </RadioGroup>
+            </LinearLayout>
+        </HorizontalScrollView>
+
+        <EditText
+            android:id="@+id/nameField"
+            android:layout_width="211dp"
+            android:layout_height="39dp"
+            android:layout_marginLeft="43dp"
+            android:layout_marginStart="43dp"
+            android:layout_marginTop="63dp"
+            android:background="@drawable/create_button_hovered"
+            android:hint="Name"
+            android:paddingLeft="6dp"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintTop_toTopOf="@+id/constraintLayout" />
+
+        <android.support.constraint.ConstraintLayout
+            android:layout_width="0dp"
+            android:layout_height="50dp"
+            android:background="@color/bottomTopDialogColor"
+            app:layout_constraintRight_toRightOf="parent"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintHorizontal_bias="0.0"
+            android:id="@+id/topDialogContainer"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <TextView
+                android:id="@+id/textView2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:layout_marginEnd="8dp"
+                android:layout_marginLeft="8dp"
+                android:layout_marginRight="8dp"
+                android:layout_marginStart="8dp"
+                android:layout_marginTop="8dp"
+                android:fontFamily="sans-serif"
+                android:text="Create Geofence"
+                android:textColor="@color/android_blue"
+                android:textSize="25sp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintHorizontal_bias="0.0"
+                app:layout_constraintLeft_toLeftOf="parent"
+                app:layout_constraintRight_toRightOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <ImageButton
+                android:id="@+id/closeButton"
+                android:layout_width="25dp"
+                android:layout_height="24dp"
+                android:background="@drawable/x_selector"
+                app:layout_constraintBottom_toBottomOf="parent"
+                android:layout_marginBottom="8dp"
+                app:layout_constraintTop_toTopOf="parent"
+                android:layout_marginTop="8dp"
+                android:layout_marginRight="16dp"
+                app:layout_constraintRight_toRightOf="parent"
+                android:layout_marginEnd="16dp" />
+
+
+
+        </android.support.constraint.ConstraintLayout>
+
+
+        <android.support.constraint.ConstraintLayout
+            android:id="@+id/bottomDialogContainer"
+            android:layout_width="303dp"
+            android:layout_height="66dp"
+            android:background="@color/bottomTopDialogColor"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintHorizontal_bias="0.0"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintRight_toRightOf="parent"
+            android:layout_marginBottom="0dp">
+
+
+            <Button
+                android:id="@+id/createGeo_button"
+                android:layout_width="121dp"
+                android:layout_height="48dp"
+                android:layout_marginBottom="8dp"
+                android:layout_marginEnd="8dp"
+                android:layout_marginLeft="8dp"
+                android:layout_marginRight="8dp"
+                android:layout_marginStart="8dp"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/create_button_selector"
+                android:text="Create"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintLeft_toLeftOf="parent"
+                app:layout_constraintRight_toRightOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+        </android.support.constraint.ConstraintLayout>
+
+
+    </android.support.constraint.ConstraintLayout>
+
+
+</android.support.constraint.ConstraintLayout>
