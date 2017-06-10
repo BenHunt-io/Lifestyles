@@ -17,6 +17,7 @@
         tools:layout_editor_absoluteX="0dp">
 
         <TextView
+            style="@style/GeneralTextStyle"
             android:id="@+id/timeText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -28,6 +29,7 @@
             app:layout_constraintTop_toBottomOf="@+id/nameField" />
 
         <ToggleButton
+            style="@style/GeneralTextStyle"
             android:id="@+id/timeLimitToggle"
             android:layout_width="91dp"
             android:layout_height="39dp"
@@ -40,6 +42,7 @@
             app:layout_constraintVertical_bias="0.483" />
 
         <NumberPicker
+            style="@style/GeneralTextStyle"
             android:id="@+id/hourPicker"
             android:layout_width="55dp"
             android:layout_height="75dp"
@@ -49,6 +52,7 @@
             app:layout_constraintLeft_toLeftOf="parent"></NumberPicker>
 
         <NumberPicker
+            style="@style/GeneralTextStyle"
             android:id="@+id/minutePicker"
             android:layout_width="55dp"
             android:layout_height="75dp"
@@ -196,6 +200,7 @@
         </HorizontalScrollView>
 
         <EditText
+            style="@style/GeneralTextStyle"
             android:id="@+id/nameField"
             android:layout_width="211dp"
             android:layout_height="39dp"
@@ -269,6 +274,7 @@
 
 
             <Button
+                style="@style/GeneralTextStyle"
                 android:id="@+id/createGeo_button"
                 android:layout_width="121dp"
                 android:layout_height="48dp"

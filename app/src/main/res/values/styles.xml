@@ -13,4 +13,10 @@
         <item name="android:windowMinWidthMajor">0dip</item>
     </style>
 
+    <style name="GeneralTextStyle">
+        <item name ="android:textColor">@color/dark_gray</item>
+        <item name ="android:textColorHint">@color/bottomTopDialogColor</item>
+        <item name ="android:color">@color/dark_gray</item>
+    </style>
+
 </resources>

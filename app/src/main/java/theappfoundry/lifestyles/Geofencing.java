@@ -5,10 +5,14 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
+import android.graphics.Typeface;
+import android.graphics.drawable.Drawable;
 import android.graphics.drawable.ShapeDrawable;
 import android.graphics.drawable.shapes.RectShape;
 import android.location.Geocoder;
@@ -33,6 +37,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.util.TypedValue;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
@@ -42,6 +47,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
+import android.widget.NumberPicker;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -67,9 +73,12 @@ import com.google.android.gms.maps.GoogleMapOptions;
 import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.model.BitmapDescriptor;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 import org.w3c.dom.Text;
@@ -84,7 +93,7 @@ import java.util.Map;
 
 import yuku.ambilwarna.AmbilWarnaDialog; // For Color Picker
 
-public class Geofencing extends AppCompatActivity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationListener, ResultCallback<Status> , OnMapReadyCallback, GoogleMap.OnMapClickListener, View.OnTouchListener, AmbilWarnaDialog.OnAmbilWarnaListener, PlaceSelectionListener, DialogWindowPopUp.NoticeDialogListener {
+public class Geofencing extends AppCompatActivity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationListener, ResultCallback<Status> , OnMapReadyCallback, View.OnTouchListener, AmbilWarnaDialog.OnAmbilWarnaListener, PlaceSelectionListener, DialogWindowPopUp.NoticeDialogListener, GoogleMap.OnMarkerClickListener {
 
 
     private ConstraintLayout searchBarContainer;
@@ -98,8 +107,6 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
     private float top;
     private float right;
     private float bot;
-
-    private int nameCounter;
 
     private ShapeDrawable mDrawable; // The geofence rectangle being drawn
 
@@ -116,8 +123,12 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
     private Button addGeofenceButton; // adds Geofences when clicked
     private Button startGeoFencingButton;
     private Button confirmLocation;
+
+    // Toolbar Buttons
     private ImageButton fillButton;  // fill bucket for Geofence
     private ImageButton strokeButton; // stroke bucket for Geofence
+    private ImageButton drawGeoButton; //
+    private ImageButton panGMapsButton;
 
     private Location mCurrentLocation; // holds references to location passed in, in onLocationChanged
     private LocationRequest mLocationRequest; // for a location request..
@@ -151,6 +162,8 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
     private int statusBarHeight; // Status bar - where the time and wifi is
     public float actionBarHeight; // (Top Nav Bar)
     private ActionBar myActionBar; // The top nav bar
+
+
     //////////////////////// Drawing Rectangle /////////////////////////////////////
 
     private CustomDrawableView mCustomDrawableView; // Extends view and makes the rectangle.
@@ -191,7 +204,12 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
 
         myActionBar.setDisplayHomeAsUpEnabled(true); // sets the up button on the action bar
 
-        myActionBar.setTitle("CRONOS"); // Set Title :)
+        Typeface quickSandRegular = Typeface.createFromAsset(getAssets(), "Quicksand-Regular.otf");
+        // Set Title :)
+
+
+
+        myActionBar.setIcon(R.drawable.cronos_logo_v1);
 
 
 
@@ -202,8 +220,8 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
         locationButton = (Button) findViewById(R.id.locationButton);
         addGeofenceButton = (Button) findViewById(R.id.addGeofenceButton);
         addMapButton =  (Button) findViewById(R.id.addMapButton);
-        startGeoFencingButton = (Button) findViewById(R.id.startGeoFencing);
-        confirmLocation = (Button)findViewById(R.id.confirmLocation);
+        drawGeoButton = (ImageButton) findViewById(R.id.drawGeoButton);
+        //confirmLocation = (Button)findViewById(R.id.confirmLocation);
         fillButton = (ImageButton)findViewById(R.id.fillButton);
         strokeButton = (ImageButton)findViewById(R.id.strokeButton);
 
@@ -211,8 +229,8 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
         locationButton.setOnTouchListener(this);
         addGeofenceButton.setOnTouchListener(this);
         addMapButton.setOnTouchListener(this);
-        startGeoFencingButton.setOnTouchListener(this);
-        confirmLocation.setOnTouchListener(this);
+        drawGeoButton.setOnTouchListener(this);
+//        confirmLocation.setOnTouchListener(this);
         fillButton.setOnTouchListener(this);
         strokeButton.setOnTouchListener(this);
 
@@ -254,6 +272,7 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
         dialogFragmentManager = getSupportFragmentManager();
 
 
+        loadGoogleMaps(); // Essentially initializes and starts GoogleMaps
 
 
     }
@@ -277,7 +296,7 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
 
 
 
-        confirmLocation.setVisibility(View.INVISIBLE);
+//        confirmLocation.setVisibility(View.INVISIBLE);
 
 
     }
@@ -474,15 +493,11 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
         myMap = googleMap; // googleMap holds a reference to myMap
 
 
+
+        myMap.setOnMarkerClickListener(this);
     }
 
 
-    @Override
-    public void onMapClick(LatLng latLng) {
-
-
-
-    }
 
     /**
      * If dispatch event doesn't consume the event it will come here. This is used instead of
@@ -495,144 +510,83 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
     public boolean onTouch(View v, MotionEvent event) {
 
 
-        Log.d(TAG, "onTouch: TEST");
+
+        Log.d(TAG, "onTouch: TEST " + event);
 
         int action = MotionEventCompat.getActionMasked(event);
         int i = v.getId();
 
-        if(action == MotionEvent.ACTION_DOWN) {
-            if (i == R.id.locationButton) {
-
-                if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                    // TODO: Consider calling
-                    //    ActivityCompat#requestPermissions
-                    // here to request the missing permissions, and then overriding
-                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                    //                                          int[] grantResults)
-                    // to handle the case where the user grants the permission. See the documentation
-                    // for ActivityCompat#requestPermissions for more details.
-                    // The below statement requests permissions
+        if (action == MotionEvent.ACTION_DOWN) {
+            switch (v.getId()) {
+                case R.id.locationButton:
+                    if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                        // TODO: Consider calling
+                        //    ActivityCompat#requestPermissions
+                        // here to request the missing permissions, and then overriding
+                        //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                        //                                          int[] grantResults)
+                        // to handle the case where the user grants the permission. See the documentation
+                        // for ActivityCompat#requestPermissions for more details.
+                        // The below statement requests permissions
 //                    ActivityCompat.requestPermissions(this,
 //                            new String[]{
 //                                    android.Manifest.permission.ACCESS_COARSE_LOCATION},
 //                            REQUEST_COURSE_ACCESS)
-                    return true;
-                }
-                mLatitudeText = (String.valueOf(mCurrentLocation.getLatitude())); // get updated value
-                mLongitudeText = (String.valueOf(mCurrentLocation.getLongitude())); // get updated value
-                Toast.makeText(this, mLatitudeText + " " + mLongitudeText, Toast.LENGTH_SHORT).show();
+                    }
+                    mLatitudeText = (String.valueOf(mCurrentLocation.getLatitude())); // get updated value
+                    mLongitudeText = (String.valueOf(mCurrentLocation.getLongitude())); // get updated value
+                    Toast.makeText(this, mLatitudeText + " " + mLongitudeText, Toast.LENGTH_SHORT).show();
+                    break;
+                case R.id.addGeofenceButton:
+                    if (GeofenceLocations.Geofences != null) {
+                        populateGeofenceList(); // add the rectangle the user created to geofence list.
+                        // probably don't need.. It get's called in addGeofences getGeofencingRequest();
+                        addGeofences();
+                    }
+                    break;
+                case R.id.drawGeoButton:
+                    isDrawingGeofence = !isDrawingGeofence;
+                    Log.d(TAG, "BENNY" + isDrawingGeofence);
+                    break;
+                case R.id.imageButton:
 
-            } else if (i == R.id.addGeofenceButton) {
-                if(GeofenceLocations.Geofences != null){
-                    populateGeofenceList(); // add the rectangle the user created to geofence list.
-                    // probably don't need.. It get's called in addGeofences getGeofencingRequest();
-                    addGeofences();
-                    return true;
-                }
-            } else if (i == R.id.addMapButton) {
-
-                /**
-                 * Builds and returns a camera position for the google maps
-                 */
-                cameraPosition = CameraPosition.builder()
-                        .target(Constants.STUDY_LOCATIONS.get("LivingRoom")) // Where? Lat/Long
-                        .zoom(19) // Increasing zoom size, doubles width of visible world
-                        .build(); // returns a cameraPosition instance
+                    // New instance
+                    final DialogWindowPopUp dialogWindow = new DialogWindowPopUp();
 
 
-                options = new GoogleMapOptions(); // options for map
+                    /**
+                     *  This is a convenience for explicitly creating a transaction, adding the fragment to it
+                     *  with the given tag, and committing it. This does not add the transaction to the back
+                     *  stack. When the fragment is dismissed, a new transaction will be executed to remove it
+                     *  from the activity.
+                     */
+                    dialogWindow.show(dialogFragmentManager, "test");
 
-                /**
-                 * Specify GoogleMapOptions.. Can add more!
-                 */
-                options.mapType(GoogleMap.MAP_TYPE_SATELLITE)
-                        .camera(cameraPosition);
+                    isDrawingGeofence = false;
+                    break;
+                // If it's cancel button.. remove drawn geofence.
+                case R.id.create_delete_selector:
+                    myRectLayout.removeAllViews();
+                    break;
+                case R.id.fillButton:
+                    colorPicker.show();
+                    fill = true;
+                    break;
+                case R.id.strokeButton:
+                    colorPicker.show();
+                    fill = false;
+                    break;
 
-                /**
-                 * Make an instance of the MapsActivity which is a FragmentActivity
-                 */
-                mapFragment = MapFragment.newInstance(options);
-
-                /**
-                 * You need this to start adding fragments. Used getSupportFragmentManager() instead of
-                 * getFragmentManager because its a FragmentActivity not just Fragment
-                 */
-                fragmentManager = getFragmentManager();
-                /**
-                 *FragmentTransaction class to perform fragment transactions (such as add,
-                 remove, or replace) in your activity:
-                 */
-
-                /**
-                 * Makes FragmentTransaction instance to add, replace, remove ect.
-                 */
-                fragmentTransaction = fragmentManager.beginTransaction();
-                fragmentTransaction.add(R.id.mapLayout, mapFragment); // adds the mapFragment to the Linear Layout
-                mapFragment.getMapAsync(this); // set the callback for the fragment
-                fragmentTransaction.commit(); // Have to commit for it to go through!
-                return true;
-
-
-            } else if (i == R.id.startGeoFencing) {
-                isDrawingGeofence = !isDrawingGeofence;
-                Log.d(TAG, "BENNY" + isDrawingGeofence);
-                return true;
-
-            }else if(i == R.id.confirmLocation || i == R.id.imageButton){
-                Log.d(TAG, "onTouch: sdsdsdasld");
-                confirmLocation.setVisibility(View.INVISIBLE);
-                myRectLayout.removeAllViews();
-                GeofenceLocations.fillColor = currentFillColor; // for GMaps Geofence Polygon
-                GeofenceLocations.strokeColor = currentStrokeColor; // same ^^
-                GeofenceLocations.convertAndAddGeofence("Bens House",left,top,right,bot,myMap);
-
-                // Center Marker for geofence
-                myMap.addMarker(new MarkerOptions()
-                        .position(GeofenceLocations.Geofences.get("Bens House"))
-                        .title("Marker"));
-
-                //DialogWindowPopUp.instantiate(this, "DialogWindow");
-
-
-                // New instance
-                final DialogWindowPopUp dialogWindow = new DialogWindowPopUp();
-
-
-                /**
-                 *  This is a convenience for explicitly creating a transaction, adding the fragment to it
-                 *  with the given tag, and committing it. This does not add the transaction to the back
-                 *  stack. When the fragment is dismissed, a new transaction will be executed to remove it
-                 *  from the activity.
-                 */
-                dialogWindow.show(dialogFragmentManager,"test");
-
-
-
-
-
-                isDrawingGeofence = false;
-                return true;
-            }
-            // If it's cancel button.. remove drawn geofence.
-            else if(i == R.id.create_delete_selector){
-                myRectLayout.removeAllViews();
-                return true;
+                default:
+                    Log.d(TAG, "onTouch: testetsetsetsets");
+                    return false;
 
             }
-            else if(i == R.id.fillButton){
-                colorPicker.show();
-                fill = true;
-
-
-            }
-            else if(i == R.id.strokeButton){
-                colorPicker.show();
-                fill = false;
-
-            }
+            // If switch statement break gets executed.. touch event should be consumed
+            return true;
         }
-        return false; // If false then no touch event has been consumed in OnTouch
-
+        Log.d(TAG, "onTouch: returned to normal");
+            return false; // If action event was not ActionDown
 
     }
 
@@ -681,33 +635,43 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
         if(jumpToAddress != null) {
             Log.d(TAG, "onPlaceSelected: " + jumpToAddress.latitude);
             CameraPosition newCameraPosition = new CameraPosition.Builder()
-                    .target(jumpToAddress)
-                    .zoom(20)
-                    .build();
+                    .target(jumpToAddress) // Where? Lat/Long
+                    .zoom(20) // Increasing zoom size, doubles width of visible world
+                    .build(); // returns a cameraPosition instance
+
+            // Move the camera
             myMap.moveCamera(CameraUpdateFactory.newCameraPosition(newCameraPosition));
         }
         else{
             Toast.makeText(this, "Address not found", Toast.LENGTH_SHORT).show();
         }
 
-//        CameraUpdate cameraUpdate = new CameraUpdate()
-//        myMap.moveCamera();
-//        CameraPosition newPosition = CameraPosition.builder()
-//                .target(jumpToAddress) // Where? Lat/Long
-//                .zoom(19) // Increasing zoom size, doubles width of visible world
-//                .build(); // returns a cameraPosition instance
-//
-//        /**
-//         * Specify GoogleMapOptions.. Can add more!
-//         */
-//        options.camera(newPosition);
-
-
     }
 
     @Override
     public void onError(Status status) {
 
+    }
+
+    //When a marker is clicked on GoogleMaps..
+    @Override
+    public boolean onMarkerClick(Marker marker) {
+
+
+        Log.d(TAG, "onMarkerClick: ");
+        LayoutInflater inflater = getLayoutInflater();
+        View editInspect = inflater.inflate(R.layout.edit_cancel_popup, myRectLayout, false);
+
+        RelativeLayout.LayoutParams markerParams = new RelativeLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+
+        markerParams.leftMargin = (int)left;
+        markerParams.topMargin = (int)top;
+
+        // Add the inflated view with the specified layout parameters..
+        myRectLayout.addView(editInspect,markerParams);
+
+        return false;
     }
 
 
@@ -857,22 +821,25 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
      */
 
     private boolean isInSideClicked = false; // To determine if a click occured inside GoogleMaps
+
     public boolean dispatchTouchEvent(MotionEvent event) {
+
+//
 
         int action = event.getAction();
 
-        if(action == MotionEvent.ACTION_DOWN) {
+        if (action == MotionEvent.ACTION_DOWN) {
+            Log.d(TAG, "dispatchTouchEvent: is motionActionEventDown");
 
             //Making a region where we can deterimine if the click was on GoogleMaps or not
             //Same region that holds the canvas tp draw the rectangle
-            Rect rect = new Rect(leftToolBarContainer.getWidth(), ((int)actionBarHeight + searchBarContainer.getHeight() + statusBarHeight), myRectLayout.getWidth(), myRectLayout.getHeight());
+            Rect rect = new Rect(leftToolBarContainer.getWidth(), ((int) actionBarHeight + searchBarContainer.getHeight() + statusBarHeight), myRectLayout.getWidth(), myRectLayout.getHeight());
             if (rect.contains((int) event.getX(), (int) event.getY())) {
                 isInSideClicked = true;
                 Log.d(TAG, "dispatchTouchEvent: inside clicked");
-            }
-            else isInSideClicked = false; // Reset
+            } else isInSideClicked = false; // Reset
 
-            if(isInSideClicked && isDrawingGeofence){
+            if (isInSideClicked && isDrawingGeofence) {
 
                 Log.d(TAG, "Action was DOWN");
                 // Rectangle may have been drawn somewhere else.
@@ -884,81 +851,82 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
 //                myLinearLayout.addView(mCustomDrawableView);
 //                myLinearLayout.bringToFront();
                 return true;
-            }
-            else{
+            } else {
+                Log.d(TAG, "dispatchTouchEvent: return to norsdsdasdasdmal");
                 return super.dispatchTouchEvent(event);
             }
 
 
-        }else if (action == MotionEvent.ACTION_MOVE && isInSideClicked) {
+        } else if (action == MotionEvent.ACTION_MOVE && isInSideClicked) {
 
-                Log.d(TAG, "isdraw " + isDrawingGeofence);
-                if (isDrawingGeofence) {
-                    Log.d(TAG, "Action was MOVE");
-                    myRectLayout.removeAllViews(); // remove old drawn rectangle from LinearLayout
-                    mCustomDrawableView.draw(event); // draw new rectangle passing in the MotionEvent
-                    myRectLayout.addView(mCustomDrawableView); //Once it's been drawn.. add to LinearLayout
-                    myRectLayout.bringToFront();
+            Log.d(TAG, "isdraw " + isDrawingGeofence);
+            if (isDrawingGeofence) {
+                Log.d(TAG, "Action was MOVE");
+                myRectLayout.removeAllViews(); // remove old drawn rectangle from LinearLayout
+                mCustomDrawableView.draw(event); // draw new rectangle passing in the MotionEvent
+                myRectLayout.addView(mCustomDrawableView); //Once it's been drawn.. add to LinearLayout
+                myRectLayout.bringToFront();
 
-                    return true;
-                } else {
-                    return super.dispatchTouchEvent(event);
+                return true;
+            } else {
+                return super.dispatchTouchEvent(event);
 
-                }
-        }else if(action == MotionEvent.ACTION_UP && isInSideClicked){
+            }
+        } else if (action == MotionEvent.ACTION_UP && isInSideClicked && isDrawingGeofence) {
 
             Log.d(TAG, "Action was UP");
-            left = Math.min(Math.round(mCustomDrawableView.x),Math.round(mCustomDrawableView.width));
+            left = Math.min(Math.round(mCustomDrawableView.x), Math.round(mCustomDrawableView.width));
             top = Math.min(Math.round(mCustomDrawableView.y), Math.round(mCustomDrawableView.height));
             right = Math.max(Math.round(mCustomDrawableView.x), Math.round(mCustomDrawableView.width));
-            bot =  Math.max(Math.round(mCustomDrawableView.y), Math.round(mCustomDrawableView.height));
+            bot = Math.max(Math.round(mCustomDrawableView.y), Math.round(mCustomDrawableView.height));
 
 
-            if(isDrawingGeofence) {
+            // confirmLocation.setVisibility(View.VISIBLE);
+            isDrawingGeofence = false;
 
-                // confirmLocation.setVisibility(View.VISIBLE);
-                isDrawingGeofence = false;
+            LayoutInflater inflater = getLayoutInflater();
+            // Inflate the create/delete dialog popup for when users make geofence, do not want
+            // to attach to root (myRectLayout) yet, hence the false
+            ConstraintLayout myView = (ConstraintLayout) inflater.inflate(R.layout.create_delete_dialog, myRectLayout, false);
 
-                LayoutInflater inflater = getLayoutInflater();
-                // Inflate the create/delete dialog popup for when users make geofence, do not want
-                // to attach to root (myRectLayout) yet, hence the false
-                ConstraintLayout myView = (ConstraintLayout) inflater.inflate(R.layout.create_delete_dialog, myRectLayout, false);
+            // Instantiate layoutParams object
+            RelativeLayout.LayoutParams buttonParams = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
 
-                // Instantiate layoutParams object
-                RelativeLayout.LayoutParams buttonParams = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            /**
+             * Since the rectangles real width and height take up the entire parent layout I can't
+             * use it as reference in the relative layout. However, since I have bounds at which the
+             * rectangle is drawn on the canvas, then I can use margins to position the button relative
+             * to the rectangle.
+             */
+            buttonParams.topMargin = (int) top;
+            buttonParams.leftMargin = (int) left;
 
-                /**
-                 * Since the rectangles real width and height take up the entire parent layout I can't
-                 * use it as reference in the relative layout. However, since I have bounds at which the
-                 * rectangle is drawn on the canvas, then I can use margins to position the button relative
-                 * to the rectangle.
-                 */
-                buttonParams.topMargin = (int) top;
-                buttonParams.leftMargin = (int) left;
+            myRectLayout.addView(myView, buttonParams);
 
-                myRectLayout.addView(myView, buttonParams);
+            myView.setId(R.id.createDeleteButton);
+            mCustomDrawableView.setId(R.id.myRectangle);
 
-                myView.setId(R.id.createDeleteButton);
-                mCustomDrawableView.setId(R.id.myRectangle);
+            Log.d(TAG, "dispatchTouchEvent: ");
 
-                Log.d(TAG, "dispatchTouchEvent: ");
+            LinearLayout anotherView = (LinearLayout) myView.getChildAt(0);
 
-                LinearLayout anotherView = (LinearLayout) myView.getChildAt(0);
-
-                // For all the children in the Linear Inflated layout, set an onTouch listener
-                for(int i = 0; i<anotherView.getChildCount(); i++){
-                    anotherView.getChildAt(i).setOnTouchListener(this);
-                }
+            // For all the children in the Linear Inflated layout, set an onTouch listener
+            for (int i = 0; i < anotherView.getChildCount(); i++) {
+                anotherView.getChildAt(i).setOnTouchListener(this);
             }
 
 
             Log.d(TAG, "Left: " + left + " Top: " + top + " Right: " + right + "Bottom: " + bot);
 
-            return true;
+        } else {
+            // Because a click is action down and up I have to return it to normal flow on both
+            // up and down?
+            return super.dispatchTouchEvent(event);
         }
 
 
         // No touch event is consumed. Put touch event back to normal flow.
+        Log.d(TAG, "dispatchTouchEvent: Touch returned");
         return super.dispatchTouchEvent(event);
 
     }
@@ -1020,15 +988,132 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
      */
     @Override
     public void onDialogPositiveClick(DialogFragment dialog) {
-        Log.d(TAG, "onDialogPositiveClick: was clicked");
+
+        // Extract variables references from dialog. Then get the data from those references
+        NumberPicker hourPicker = (NumberPicker)dialog.getDialog().findViewById(R.id.hourPicker);
+        NumberPicker minutePicker = (NumberPicker)dialog.getDialog().findViewById(R.id.minutePicker);
         EditText nameField  = (EditText) dialog.getDialog().findViewById(R.id.nameField);
-        Log.d(TAG, "onDialogPositiveClick: " + nameField.getText().toString());
+
+        String geofenceName = nameField.getText().toString();
+
+
+        Log.d(TAG, "onDialogPositiveClick: was clicked");
+
+        myRectLayout.removeAllViews();
+        GeofenceLocations.fillColor = currentFillColor; // for GMaps Geofence Polygon
+        GeofenceLocations.strokeColor = currentStrokeColor; // same ^^
+        GeofenceLocations.convertAndAddGeofence(geofenceName, left, top, right, bot, myMap);
+
+        drawMarker(geofenceName);
+        myMap.setOnMarkerClickListener(this);
+        Log.d(TAG, "onDialogPositiveClick: I SET THE DAMN LISTENER");
+
+        isDrawingGeofence = false;
     }
 
+    // If user cancels window remove the rectangle. Not drawing anymore.
     @Override
     public void onDialogNegativeClick(DialogFragment dialog) {
-        Log.d(TAG, "onDialogNegativeClick: was clicked");
+        myRectLayout.removeAllViews();
+        isDrawingGeofence = false;
+
     }
+
+
+    /**
+     * Need to convert drawable into a BitmapDescriptor object that is used for GoogleMaps Icons
+     *
+     * @param drawable  -- icon that is being converted
+     * @return BitmapDescriptor - what is needed for setting GoogleMap  marker icons
+     */
+    private BitmapDescriptor getMarkerIconFromDrawable(Drawable drawable) {
+
+
+        /**
+         * Create bitmap which the drawing will be in., wid, height, Config.
+         * ARGB_8888 is each pixel is stored on 8 bytes. Basically changes how its stored
+         * Make it the size of the icon that we are using for a maker
+         */
+        Bitmap bitmap = Bitmap.createBitmap(200, 200, Bitmap.Config.ARGB_8888);
+
+        /**
+         * * A Canvas works for you as a pretense, or interface, to the actual surface upon which
+         * your graphics will be drawn — it holds all of your "draw" call
+         */
+        Canvas canvas = new Canvas(bitmap);
+        drawable.setBounds(0, 0, 200, 200);
+        // Draw in it's bounds via setBounds
+        drawable.draw(canvas);
+
+
+        return BitmapDescriptorFactory.fromBitmap(bitmap);
+    }
+
+    /**
+     * Have the converted drawable.. Configure marker now
+     */
+    public void drawMarker(String geofenceName) {
+
+        //Drawable icon = getResources().getDrawable(R.drawable.ic_home_icon_svg_please);
+        //Bitmap iconBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.home_icon);
+        //BitmapDescriptor iconBitmapDescriptor = BitmapDescriptorFactory.fromBitmap(iconBitmap);
+        //itmap iconBitmap = Bitmap.createBitmap(icon.getIntrinsicWidth(),icon.getIntrinsicHeight(), Bitmap.Config.ARGB_8888);
+
+        Drawable icon = getResources().getDrawable(R.drawable.home_icon_v2 );
+        BitmapDescriptor markerIcon = getMarkerIconFromDrawable(icon);
+
+        // Center Marker for geofence
+        myMap.addMarker(new MarkerOptions()
+                .position(GeofenceLocations.Geofences.get(geofenceName))
+                .icon(markerIcon)
+                .title(geofenceName)
+                .zIndex(5));
+
+    }
+
+    public void loadGoogleMaps(){
+        /**
+         * Builds and returns a camera position for the google maps
+         */
+        cameraPosition = CameraPosition.builder()
+                .target(Constants.STUDY_LOCATIONS.get("LivingRoom")) // Where? Lat/Long
+                .zoom(19) // Increasing zoom size, doubles width of visible world
+                .build(); // returns a cameraPosition instance
+
+
+        options = new GoogleMapOptions(); // options for map
+
+        /**
+         * Specify GoogleMapOptions.. Can add more!
+         */
+        options.mapType(GoogleMap.MAP_TYPE_SATELLITE)
+                .camera(cameraPosition);
+
+        /**
+         * Make an instance of the MapsActivity which is a FragmentActivity
+         */
+        mapFragment = MapFragment.newInstance(options);
+
+        /**
+         * You need this to start adding fragments. Used getSupportFragmentManager() instead of
+         * getFragmentManager because its a FragmentActivity not just Fragment
+         */
+        fragmentManager = getFragmentManager();
+        /**
+         *FragmentTransaction class to perform fragment transactions (such as add,
+         remove, or replace) in your activity:
+         */
+
+        /**
+         * Makes FragmentTransaction instance to add, replace, remove ect.
+         */
+        fragmentTransaction = fragmentManager.beginTransaction();
+        fragmentTransaction.add(R.id.mapLayout, mapFragment); // adds the mapFragment to the Linear Layout
+        mapFragment.getMapAsync(this); // set the callback for the fragment
+        fragmentTransaction.commit(); // Have to commit for it to go through!
+    }
+
+
 
 
 

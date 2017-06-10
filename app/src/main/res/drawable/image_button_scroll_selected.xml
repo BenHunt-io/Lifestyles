@@ -6,7 +6,7 @@
             <solid android:color="@color/bottomTopDialogColor"></solid>
         </shape>
     </item>
-    <item android:drawable="@drawable/home_icon">
+    <item android:drawable="@drawable/home_icon_v2">
 
     </item>
 
