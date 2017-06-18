@@ -4,7 +4,9 @@ import android.animation.ArgbEvaluator;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
@@ -43,12 +45,14 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.NumberPicker;
 import android.widget.RelativeLayout;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -80,9 +84,11 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.PolygonOptions;
 
 import org.w3c.dom.Text;
 
+import java.sql.Array;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
@@ -130,6 +136,9 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
     private ImageButton drawGeoButton; //
     private ImageButton panGMapsButton;
 
+    private Spinner jumpToSpinner;
+    private ArrayList<String> spinnerList; // List of strings of locations used in Spinner.
+
     private Location mCurrentLocation; // holds references to location passed in, in onLocationChanged
     private LocationRequest mLocationRequest; // for a location request..
 
@@ -173,6 +182,10 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
     private Rect outline; // Making rectangle outline
     private Paint strokePaint; // For rectangle outline color, thickness (stroke)
     private Paint paint; // setting fill color of rectangle.
+
+    /////////////////////////////////////////////////////////////////////////////////
+
+    private DatabaseAdapter databaseAdapter;
 
 
 
@@ -219,16 +232,17 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
 
         locationButton = (Button) findViewById(R.id.locationButton);
         addGeofenceButton = (Button) findViewById(R.id.addGeofenceButton);
-        addMapButton =  (Button) findViewById(R.id.addMapButton);
+       // addMapButton =  (Button) findViewById(R.id.addMapButton);
         drawGeoButton = (ImageButton) findViewById(R.id.drawGeoButton);
         //confirmLocation = (Button)findViewById(R.id.confirmLocation);
         fillButton = (ImageButton)findViewById(R.id.fillButton);
         strokeButton = (ImageButton)findViewById(R.id.strokeButton);
 
 
+
         locationButton.setOnTouchListener(this);
         addGeofenceButton.setOnTouchListener(this);
-        addMapButton.setOnTouchListener(this);
+//        addMapButton.setOnTouchListener(this);
         drawGeoButton.setOnTouchListener(this);
 //        confirmLocation.setOnTouchListener(this);
         fillButton.setOnTouchListener(this);
@@ -273,6 +287,12 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
 
 
         loadGoogleMaps(); // Essentially initializes and starts GoogleMaps
+        initLocationSpinner();
+
+
+
+        // Get Database connection
+        databaseAdapter = new DatabaseAdapter(this);
 
 
     }
@@ -491,10 +511,18 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
 //                .title("Marker"));
 
         myMap = googleMap; // googleMap holds a reference to myMap
-
-
-
         myMap.setOnMarkerClickListener(this);
+
+
+        // Get polygons from database (geofences) and add them to the map.
+        ArrayList<PolygonOptions> rectOptions = databaseAdapter.getPolygonRectOptions();
+        if(rectOptions != null) {
+            for (int i = 0; i < rectOptions.size(); i++) {
+                Log.d(TAG, "onMapReady: "+ rectOptions);
+                myMap.addPolygon(rectOptions.get(i));
+            }
+        }
+
     }
 
 
@@ -670,6 +698,9 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
 
         // Add the inflated view with the specified layout parameters..
         myRectLayout.addView(editInspect,markerParams);
+
+        // When Marker gets click add the title to the spinner List
+        spinnerList.add(marker.getTitle());
 
         return false;
     }
@@ -1000,9 +1031,10 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
         Log.d(TAG, "onDialogPositiveClick: was clicked");
 
         myRectLayout.removeAllViews();
+        GeofenceLocations geofenceLocations = new GeofenceLocations(this); // pass in context
         GeofenceLocations.fillColor = currentFillColor; // for GMaps Geofence Polygon
         GeofenceLocations.strokeColor = currentStrokeColor; // same ^^
-        GeofenceLocations.convertAndAddGeofence(geofenceName, left, top, right, bot, myMap);
+        geofenceLocations.convertAndAddGeofence(this ,geofenceName, left, top, right, bot, myMap);
 
         drawMarker(geofenceName);
         myMap.setOnMarkerClickListener(this);
@@ -1112,6 +1144,28 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
         mapFragment.getMapAsync(this); // set the callback for the fragment
         fragmentTransaction.commit(); // Have to commit for it to go through!
     }
+
+
+    /**
+     * Initialize Spinner
+     */
+    public void initLocationSpinner(){
+
+        spinnerList = new ArrayList<>();
+//        if(GeofenceLocations.sharedPreferences.getAll().size() == null)
+//            spinnerList.add("Empty");
+
+        jumpToSpinner = (Spinner)findViewById(R.id.jumpToSpinner); // Make Spinner View
+        // // Create an ArrayAdapter using the string array and a default spinner layout
+        ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(this,
+                R.layout.simple_spinner_item, spinnerList);
+        // Specify the layout to use when the list of choices appears
+        spinnerAdapter.setDropDownViewResource(R.layout.support_simple_spinner_dropdown_item);
+        jumpToSpinner.setAdapter(spinnerAdapter);
+
+
+    }
+
 
 
 

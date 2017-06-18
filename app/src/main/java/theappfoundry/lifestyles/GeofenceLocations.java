@@ -1,5 +1,8 @@
 package theappfoundry.lifestyles;
 
+import android.content.Context;
+import android.content.SharedPreferences;
+import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Color;
 import android.graphics.Point;
 import android.util.Log;
@@ -26,6 +29,13 @@ public class GeofenceLocations {
     private float top;
     private float right;
     private float bottom;
+    private Context context;
+    private DatabaseAdapter databaseAdapter;
+
+    // I want to be able to access this without making another variable
+    // and make it independent of GeofenceLocation instances.
+    public static SharedPreferences sharedPreferences;
+    public static SharedPreferences.Editor editor;
 
     /**
      * Need to update these colors with the Geofence drawn so that the polygon made with GMapsAPI
@@ -35,11 +45,20 @@ public class GeofenceLocations {
     public static int strokeColor;
 
 
-
     public static HashMap<String, LatLng> Geofences = new HashMap<>();
 
+    public GeofenceLocations(Context context){
+        this.context = context;
+        databaseAdapter = new DatabaseAdapter(context);
+    }
 
-    public static void convertAndAddGeofence(String key, float left, float top, float right, float bottom, GoogleMap myMap){
+
+    public void convertAndAddGeofence(Context context, String key, float left, float top, float right, float bottom, GoogleMap myMap){
+
+        // If sharedPreferences "GeofenceData" does not exist, it will be created
+        sharedPreferences = context.getSharedPreferences("GeofenceData", Context.MODE_PRIVATE);
+        editor = sharedPreferences.edit(); // Create editor to edit
+
 
 
         Point topLeft = new Point((int)left,(int)top);
@@ -55,7 +74,7 @@ public class GeofenceLocations {
         Log.d(TAG, "convertAndAddGeofence: "+ topLeftLL.latitude + topLeftLL.longitude);
 
 
-        drawGeofence(myMap, topLeftLL, topRightLL, bottomLeftLL, bottomRightLL);
+        drawGeofence(myMap, topLeftLL, topRightLL, bottomLeftLL, bottomRightLL, key);
 
 
         double rectMidy = (bottomRightLL.latitude + topRightLL.latitude)/2;
@@ -63,14 +82,21 @@ public class GeofenceLocations {
 
         LatLng middleOfRect = new LatLng(rectMidy,rectMidx);
         Geofences.put(key,middleOfRect);
+
+        // Key is the name of the location. so it's key,location. Just looks weird
+        editor.putString(key, key);
+
     }
 
     /**
      * Draws geofence with cordinates
      * @param myMap - Pass in current map to add polygon/shape to
      */
-    public static void drawGeofence(GoogleMap myMap, LatLng topLeft, LatLng topRight, LatLng bottomLeft,
-                             LatLng bottomRight){
+    public void drawGeofence(GoogleMap myMap, LatLng topLeft, LatLng topRight, LatLng bottomLeft,
+                             LatLng bottomRight, String location){
+
+
+
 
         fillColor = (fillColor &0x00FFFFFF);
         fillColor = (fillColor |0xC0000000);
@@ -80,11 +106,16 @@ public class GeofenceLocations {
 //        fillColor |= (transparent << 24);
 
 
+        databaseAdapter.insertLocation(location,fillColor,strokeColor,bottomLeft.latitude,
+                bottomLeft.longitude,topLeft.latitude, topLeft.longitude, topRight.latitude,
+                topRight.longitude, bottomRight.latitude, bottomRight.longitude);
+
         // Instantiates a new Polygon object and adds points to define a rectangle
         PolygonOptions rectOptions = new PolygonOptions()
                 .add(bottomLeft, topLeft, topRight, bottomRight)
                 .fillColor(fillColor)// a - aplha 0-225 transparent
                 .strokeColor(strokeColor);
+
 
         // Get back the mutable Polygon, can edit polygon now, with setPoints() for ex.
         Polygon polygon = myMap.addPolygon(rectOptions);
