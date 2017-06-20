@@ -105,7 +105,6 @@ public class GeofenceLocations {
 //        int transparent = 255 / sliderVariable;
 //        fillColor |= (transparent << 24);
 
-
         databaseAdapter.insertLocation(location,fillColor,strokeColor,bottomLeft.latitude,
                 bottomLeft.longitude,topLeft.latitude, topLeft.longitude, topRight.latitude,
                 topRight.longitude, bottomRight.latitude, bottomRight.longitude);

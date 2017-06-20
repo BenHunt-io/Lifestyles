@@ -6,10 +6,14 @@ import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.graphics.drawable.Drawable;
+import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.google.android.gms.maps.model.BitmapDescriptor;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolygonOptions;
 
 import java.util.ArrayList;
@@ -28,10 +32,12 @@ public class DatabaseAdapter {
 
     private MyDatabaseHelper myDatabaseHelper; // handler reference to inner class
     private static SQLiteDatabase db; // database reference available to entire class
+    private Context context;
 
 
     public DatabaseAdapter(Context context){
 
+        this.context = context;
         // Get a reference to inner class, pass in context
         myDatabaseHelper = new MyDatabaseHelper(context); // instance of inner class
         db = myDatabaseHelper.getWritableDatabase(); // Open database when app starts
@@ -51,12 +57,12 @@ public class DatabaseAdapter {
         contentValues.put(myDatabaseHelper.LOCATION, location);
         contentValues.put(myDatabaseHelper.FILL, fill);
         contentValues.put(myDatabaseHelper.STROKE, stroke);
-        contentValues.put(MyDatabaseHelper.TOPLEFTLAT, topLeftLat);
-        contentValues.put(MyDatabaseHelper.TOPLEFTLONG, topLeftLong);
-        contentValues.put(MyDatabaseHelper.TOPRIGHTLAT, topRightLat);
-        contentValues.put(MyDatabaseHelper.TOPRIGHTLONG, topRightLong);
-        contentValues.put(MyDatabaseHelper.BOTLEFTLAT, botLeftLat);
-        contentValues.put(MyDatabaseHelper.BOTLEFTLONG, botLeftLong);
+        contentValues.put(MyDatabaseHelper.BOTLEFTLAT, topLeftLat);
+        contentValues.put(MyDatabaseHelper.BOTLEFTLONG, topLeftLong);
+        contentValues.put(MyDatabaseHelper.TOPLEFTLAT, topRightLat);
+        contentValues.put(MyDatabaseHelper.TOPLEFTLONG, topRightLong);
+        contentValues.put(MyDatabaseHelper.TOPRIGHTLAT, botLeftLat);
+        contentValues.put(MyDatabaseHelper.TOPRIGHTLONG, botLeftLong);
         contentValues.put(MyDatabaseHelper.BOTRIGHTLAT, botRightLat);
         contentValues.put(MyDatabaseHelper.BOTRIGHTLONG, botRightLong);
         long result = db.insert(MyDatabaseHelper.RECT_GEOTABLE, null, contentValues);
@@ -69,11 +75,17 @@ public class DatabaseAdapter {
      */
     public void deleteTable(){
         try {
-            db.execSQL(MyDatabaseHelper.DROP_TABLE);
+            db.execSQL("DROP TABLE " + MyDatabaseHelper.RECT_GEOTABLE);
         }catch(SQLException e){
             Log.d(TAG, "deleteTable: " + e);
         }
         Log.d(TAG, "deleteTable: Table Dropped");
+    }
+
+    public void updateIcon(String location, int id){
+        db.execSQL("UPDATE " + myDatabaseHelper.RECT_GEOTABLE +" SET " + MyDatabaseHelper.ICON +
+                "= " +id+ " WHERE " +myDatabaseHelper.LOCATION+ " = '"+ location +"';");
+
     }
 
 
@@ -175,6 +187,76 @@ public class DatabaseAdapter {
     }
 
 
+
+    public void dropTable(){
+        db.execSQL("DROP TABLE "+MyDatabaseHelper.RECT_GEOTABLE);
+    }
+
+    /**
+     * Makes MarkerOptions which you add to a map to make a marker
+     * @return googleMaps MarkerOptions
+     */
+    public ArrayList<MarkerOptions> getMarkerOptions(){
+
+        ArrayList<MarkerOptions> markerOptions = new ArrayList<>();
+
+        Cursor cursor = db.rawQuery("SELECT "+ MyDatabaseHelper.LOCATION +"," + MyDatabaseHelper.ICON + "," +
+            MyDatabaseHelper.LatLng + " FROM "+ MyDatabaseHelper.RECT_GEOTABLE, null);
+
+        double sumLat = 0 , sumLong = 0;
+        cursor.moveToFirst();
+        int columnCount = cursor.getColumnCount();
+
+        if(!(cursor.getCount() >= 1))
+            return null;
+
+        do{
+            // Move to beginning of latlng cordinates in table
+           // cursor.moveToPosition(cursor.getColumnIndex(MyDatabaseHelper.BOTLEFTLAT));
+            Log.d(TAG, "getMarkerOptions:  " + cursor.getColumnNames());
+            Log.d(TAG, "getMarkerOptions: " + cursor.getDouble(2));
+            for(int i = 2; i < 10; i += 2){
+                sumLat += cursor.getDouble(i);
+                sumLong += cursor.getDouble(i+1);
+            }
+            LatLng latLng = new LatLng(sumLat/4, sumLong/4);
+
+            Geofencing geofencing = new Geofencing();
+            int iconID = cursor.getInt(cursor.getColumnIndex(MyDatabaseHelper.ICON));
+
+            Drawable drawable = ContextCompat.getDrawable(context, iconID);
+            BitmapDescriptor markerIcon = geofencing.getMarkerIconFromDrawable(drawable);
+
+            markerOptions.add(new MarkerOptions()
+                    .title(cursor.getString(cursor.getColumnIndex(MyDatabaseHelper.LOCATION)))
+                    .position(latLng)
+                    .zIndex(1)
+                    .icon(markerIcon));
+
+
+        }while(cursor.moveToNext());
+
+
+
+        return markerOptions;
+    }
+
+    /**
+     * Inserts totalTime and currentDayTIme
+     * @param totalTime - total time recorded being spent at that location
+     * @param currentDayTime - total time recording being spent at that location for today only
+     */
+    public void insertTime(int totalTime, int currentDayTime){
+
+        ContentValues contentValues = new ContentValues();
+
+        contentValues.put(MyDatabaseHelper.TOTAL_TIME, totalTime);
+        contentValues.put(MyDatabaseHelper.CURRENT_DAY_TIME, currentDayTime);
+
+        db.insert(MyDatabaseHelper.LOCATION_STATS_TBL, null, contentValues);
+    }
+
+
     /**
      * Inner class (hidden from the activity) that is actually the database class bc it extends
      * SQLiteOpenHelper. Outerclass acts as an interface between activity and database. It has fxns
@@ -202,22 +284,35 @@ public class DatabaseAdapter {
         private static String BOTLEFTLONG = "BotLeftLong";
         private static String BOTRIGHTLAT = "BotRightLat";
         private static String BOTRIGHTLONG = "BotRightLong";
+        private static String ICON = "ICON";
         //////////////////////////////////////////////////////////////////////
 
         /////////////////// LOCATION_STATS_TBL ///////////////////////////////
-        private static String TOTAL_TIME = "TOTAL_TIME";
+        // (Location is primary key)
+        private static String LOCATION_STATS_TBL = "LOCATION_STATS_TBL";
+        private static String TOTAL_TIME = "TOTAL_TIME"; // int (minutes)
+        // int (seconds)
         private static String CURRENT_DAY_TIME ="CURRENT_DAY_TIME"; // Time spent during current day
 
 
-        private static String POLYGON_OPTIONS = FILL + "," + STROKE + "," + TOPLEFTLAT + ","
-                + TOPLEFTLONG + "," + TOPRIGHTLAT + "," + TOPRIGHTLONG + "," + BOTLEFTLAT + "," +
-                BOTLEFTLONG + "," + BOTRIGHTLAT + "," + BOTRIGHTLONG;
-        private static String DROP_TABLE = "DROP TABLE "+RECT_GEOTABLE;
+        //////////////////////////////////////////////////////////////////////
+
+
+        private static String LatLng = BOTLEFTLAT + ","
+                + BOTLEFTLONG + "," + TOPLEFTLAT + "," + TOPLEFTLONG + "," + TOPRIGHTLAT + "," +
+                TOPRIGHTLONG + "," + BOTRIGHTLAT + "," + BOTRIGHTLONG;
+
+        private static String POLYGON_OPTIONS = FILL + "," + STROKE + "," + LatLng;
+
+        //private static String DROP_TABLE = "DROP TABLE ";
         private static String CREATE_GEOTABLE = "CREATE TABLE " +RECT_GEOTABLE+ " ("+LOCATION+"" +
-                " TEXT PRIMARY KEY, "+FILL+" INTEGER, " +STROKE+ " INTEGER, "+BOTLEFTLAT+ " DOUBLE DEFAULT 0, "+BOTLEFTLONG+
+                " VARCHAR(255) PRIMARY KEY, "+ICON+ " INTEGER DEFAULT 0, "+FILL+" INTEGER, " +STROKE+ " INTEGER, "+BOTLEFTLAT+ " DOUBLE DEFAULT 0, "+BOTLEFTLONG+
                 " DOUBLE DEFAULT 0, "+TOPLEFTLAT+ " DOUBLE DEFAULT 0, " +TOPLEFTLONG+ " DOUBLE DEFAULT 0, "+TOPRIGHTLAT+ " DOUBLE DEFAULT 0, "+TOPRIGHTLONG+
                 " DOUBLE DEFAULT 0, "+BOTRIGHTLAT+ " DOUBLE DEFAULT 0, "
                 +BOTRIGHTLONG+" DOUBLE DEFAULT 0);";
+        private static String CREATE_LOC_STATS_TBL = "CREATE TABLE " +LOCATION_STATS_TBL + "("
+                +LOCATION+" VARCHAR(255) PRIMARY KEY,"+TOTAL_TIME+ " INTEGER DEFAULT 0,"
+                +CURRENT_DAY_TIME+ " INTEGER DEFAULT 0;";
 
 
 
@@ -235,7 +330,9 @@ public class DatabaseAdapter {
         public void onCreate(SQLiteDatabase db) {
             Toast.makeText(context, "ONCREATE", Toast.LENGTH_SHORT).show();
             try {
-                db.execSQL(CREATE_GEOTABLE);
+                //Create the tables
+                db.execSQL(CREATE_GEOTABLE+CREATE_LOC_STATS_TBL);
+
             }catch(SQLException e){
                 Log.d(TAG, "onCreate: " + e);
             }
@@ -245,17 +342,19 @@ public class DatabaseAdapter {
         // Called when the database scheme gets upgraded or changed
         @Override
         public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-            Toast.makeText(context, "ONUPGRADE", Toast.LENGTH_SHORT).show();
-            try {
-                db.execSQL(DROP_TABLE); // Drops table
-                onCreate(db);
-            }catch(SQLException e){
-                Log.d(TAG, "onUpgrade: " + e);
-            }
+//            Toast.makeText(context, "ONUPGRADE", Toast.LENGTH_SHORT).show();
+//            try {
+//                db.execSQL("DROP TABLE"+); // Drops table
+//                onCreate(db);
+//            }catch(SQLException e){
+//                Log.d(TAG, "onUpgrade: " + e);
+//            }
 
 
 
         }
+
+
     }
 
 

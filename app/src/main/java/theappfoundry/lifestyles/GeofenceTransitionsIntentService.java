@@ -45,6 +45,10 @@ public class GeofenceTransitionsIntentService extends IntentService{
         }
 
 
+        // Location services will send an intent. So this IntentService thread is just kind of
+        // sitting around until it arrives. Once it arrives it is checked. From what I've read it
+        // appears that Location services adds that GEOFENCE transition data to the pending intent
+        // and then sends it to this service with the intent we provided.
         protected void onHandleIntent(Intent intent) {
             GeofencingEvent geofencingEvent = GeofencingEvent.fromIntent(intent);
             if (geofencingEvent.hasError()) {
@@ -66,6 +70,7 @@ public class GeofenceTransitionsIntentService extends IntentService{
                 // multiple geofences.
                 List<Geofence> triggeringGeofences = geofencingEvent.getTriggeringGeofences();
 
+
                 // Get the transition details as a String.
                 String geofenceTransitionDetails = getGeofenceTransitionDetails(
                         this,
@@ -77,6 +82,25 @@ public class GeofenceTransitionsIntentService extends IntentService{
                 sendNotification(geofenceTransitionDetails);
                 Log.i(TAG, geofenceTransitionDetails);
                 Toast.makeText(this, "After sendNotification: " + geofenceTransitionDetails, Toast.LENGTH_SHORT).show();
+
+
+                // Sends a broadcast intent to the receiver in the TimeService class.
+                // Sends over data of which location entered/excited so the TimeService class can
+                // keep track of time spent in the area in a separate background thread.
+                Intent broadcastIntent = new Intent();
+                for(int i = 0; i < triggeringGeofences.size(); i++) {
+                    broadcastIntent.putExtra("Location", triggeringGeofences.get(i).getRequestId());
+                    broadcastIntent.putExtra("key", "broadcastIntent");
+                }
+                if(geofenceTransition == Geofence.GEOFENCE_TRANSITION_ENTER){
+                    broadcastIntent.setAction("Entered_Geofence"); // Intent Filter
+                }
+                else if(geofenceTransition == Geofence.GEOFENCE_TRANSITION_EXIT){
+                    broadcastIntent.setAction("Exited_Geofence"); // Intent filter
+                }
+                sendBroadcast(broadcastIntent);
+
+
             } else {
                 // Log the error.
                 Log.e(TAG, getString(R.string.geofence_transition_invalid_type,

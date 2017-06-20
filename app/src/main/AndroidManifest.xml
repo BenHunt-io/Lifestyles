@@ -34,7 +34,17 @@
             </intent-filter>
         </activity>
 
+        <receiver android:name=".TimeService$myBroadcastReceiever">
+
+            <intent-filter>
+                <action android:name="Entered_Geofence"></action>
+                <action android:name="Exited_Geofence"></action>
+
+            </intent-filter>
+
+        </receiver>
         <service android:name=".GeofenceTransitionsIntentService" />
+        <service android:name=".TimeService"></service>
         <!--
              The API key for Google Maps-based APIs is defined as a string resource.
              (See the file "res/values/google_maps_api.xml").

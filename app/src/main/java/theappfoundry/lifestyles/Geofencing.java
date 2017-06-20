@@ -19,6 +19,9 @@ import android.graphics.drawable.ShapeDrawable;
 import android.graphics.drawable.shapes.RectShape;
 import android.location.Geocoder;
 import android.location.Location;
+import android.os.Handler;
+import android.os.Message;
+import android.os.Messenger;
 import android.provider.ContactsContract;
 import android.support.annotation.NonNull;
 import android.support.constraint.ConstraintLayout;
@@ -144,6 +147,7 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
 
     private TextView latText; // To display location updates
     private TextView longText; // To display location updates
+    private static TextView timeText;
 
     private PlaceAutocompleteFragment searchFragment;
 
@@ -252,6 +256,7 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
 
         latText = (TextView) findViewById(R.id.latText);
         longText = (TextView) findViewById(R.id.longText);
+        timeText = (TextView) findViewById(R.id.CurrentTimeAmt);
 
 
         // Empty list for storing geofences.
@@ -293,6 +298,11 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
 
         // Get Database connection
         databaseAdapter = new DatabaseAdapter(this);
+
+
+        startTimeService();
+
+
 
 
     }
@@ -516,12 +526,17 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
 
         // Get polygons from database (geofences) and add them to the map.
         ArrayList<PolygonOptions> rectOptions = databaseAdapter.getPolygonRectOptions();
+        ArrayList<MarkerOptions> markerOptions = databaseAdapter.getMarkerOptions();
         if(rectOptions != null) {
-            for (int i = 0; i < rectOptions.size(); i++) {
+            for (int i = 0; i < rectOptions.size() && i < markerOptions.size(); i++) {
                 Log.d(TAG, "onMapReady: "+ rectOptions);
                 myMap.addPolygon(rectOptions.get(i));
+                myMap.addMarker(markerOptions.get(i));
+
             }
         }
+
+
 
     }
 
@@ -1058,7 +1073,7 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
      * @param drawable  -- icon that is being converted
      * @return BitmapDescriptor - what is needed for setting GoogleMap  marker icons
      */
-    private BitmapDescriptor getMarkerIconFromDrawable(Drawable drawable) {
+    public BitmapDescriptor getMarkerIconFromDrawable(Drawable drawable) {
 
 
         /**
@@ -1093,6 +1108,11 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
 
         Drawable icon = getResources().getDrawable(R.drawable.home_icon_v2 );
         BitmapDescriptor markerIcon = getMarkerIconFromDrawable(icon);
+
+        // Insert drawable ID into database. Most of the row has been inserted, so need to updated
+        // the place where a value hasn't been assigned.
+        int id = R.drawable.home_icon_v2;
+        databaseAdapter.updateIcon(geofenceName, id);
 
         // Center Marker for geofence
         myMap.addMarker(new MarkerOptions()
@@ -1163,6 +1183,45 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
         spinnerAdapter.setDropDownViewResource(R.layout.support_simple_spinner_dropdown_item);
         jumpToSpinner.setAdapter(spinnerAdapter);
 
+
+    }
+
+    public static class TimeHandler extends Handler{
+
+        public TimeHandler(){
+            super();
+        }
+
+        @Override
+        public void handleMessage(Message msg) {
+
+//            if(msg.getData().containsKey("CurrentDayTime")){
+
+                // Update the UI (Time text 00:00:00 with data from TimeService)
+                String time = msg.getData().getString("CurrentDayTime"); // Time in seconds
+                timeText.setText(time);
+
+//            }
+
+            //Default constructor associates this handler with the Looper for the current thread.
+            super.handleMessage(msg);
+        }
+    }
+
+    public void startTimeService(){
+
+        Handler handler = new TimeHandler();
+        if(handler == null){
+            Log.d(TAG, "startTimeService: null");
+        }
+        Intent serviceIntent = new Intent(this,TimeService.class);
+        Messenger messenger = new Messenger(handler); // Messenger is subclass of Parcelable
+        serviceIntent.putExtra("Handler", messenger);
+        serviceIntent.putExtra("key", "startService");
+        startService(serviceIntent);
+
+
+        Log.d(TAG, "startTimeService: ");
 
     }
 
