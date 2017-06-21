@@ -15,6 +15,9 @@ import android.util.Log;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 
+import java.sql.Time;
+import java.util.HashMap;
+
 import static android.content.ContentValues.TAG;
 
 /**
@@ -23,16 +26,20 @@ import static android.content.ContentValues.TAG;
 
 public class TimeService extends Service {
 
-
-
-    private Messenger messenger;
-    public int time = 0; // Time in seconds
-    public boolean stopClock = false;
-    private Context context;
-
+    // Was giving error to not put zero argument constructor. Online says it's something to do with
+    // Reflection. Read on it.
     public TimeService(){
-        super(); // Super constructor?
     }
+
+    private static Intent intent;
+    private static Messenger messenger;
+    public static int time = 0; // Time in seconds
+    public static boolean stopClock = false;
+    private Context context;
+    // Make it a class variable so I interrupt it from the broadcastReciever
+    private static Thread backgroundThread;
+    private static BackgroundRunnable backgroundRunnable = new BackgroundRunnable();
+    private static DatabaseAdapter databaseAdapter;
 
 
     public TimeService(Context context){
@@ -43,6 +50,7 @@ public class TimeService extends Service {
     @Override
     public void onCreate() {
 
+        databaseAdapter = new DatabaseAdapter(this);
         super.onCreate();
     }
 
@@ -59,8 +67,8 @@ public class TimeService extends Service {
                     // Make the thread with the class that implements Runnable that I made.
                     // Then start the thread.
 
-                    Thread backgroundThread = new Thread(new BackgroundRunnable());
-                    backgroundThread.start();
+//                    backgroundThread = new Thread(backgroundRunnable);
+//                    backgroundThread.start();
                     messenger = intent.getParcelableExtra("Handler");
 
 
@@ -82,21 +90,48 @@ public class TimeService extends Service {
     // Make a runnable class so that I can make a Thread.
     // What is in the run() method is executed in the Thread. Runs a thread indefinitely keeping
     // count of time in each area that the user enters
-    public class BackgroundRunnable implements Runnable {
+    public static class BackgroundRunnable implements Runnable {
 
-        String location = new String();
+        Bundle bundle = new Bundle();
+        StringBuffer buffer = new StringBuffer();
+
 
         @Override
         public void run() {
-            Bundle bundle = new Bundle();
 
-            StringBuffer buffer = new StringBuffer();
+            HashMap<String,Integer> timeMap = new HashMap<>();
 
-            //DatabaseAdapter databaseAdapter = new DatabaseAdapter(context);
+            // If location entered, load data from database. Location/TotalTime/CurrentDayTime
+            if(intent.getAction() == Constants.ENTERED_FILTER) {
+
+                // Read in the totalTime & currentDayTime from database into HashMap
+                timeMap = databaseAdapter.getTime(intent.getExtras().getString("Location"));
+            }
+
+            // If exited load data from the "Away" row. Where you are not in a designated Geofence
+            // Has it's own time, and is preset in the table without insertion
+            else if(intent.getAction() == Constants.EXITED_FILTER){
+                timeMap = databaseAdapter.getTime("Away");
+            }
+
+
+
+
+
+            // Only 1 thread can access this method at a time
+            counting(timeMap.get("totalTime"),timeMap.get("currentDayTime"),
+                    (intent.getExtras().getString("Location")));
+
+            }
+
+        public synchronized void counting(int totalTime, int currentDayTime, String location){
             while(!stopClock) {
                 Log.d(TAG, "run: test");
-                time += 1;
-                int tempTime = time;
+                int startTime = currentDayTime; // Starting time. Used to see how much time passed
+                currentDayTime += 1; // increment currentDayTime as well as totalTime
+                totalTime += 1;
+
+                int tempTime = currentDayTime; // save in temp to manipulate
                 buffer.delete(0, buffer.length());
                 // Convert time into 00:00:00 format. Hours/Minutes/Seconds
                 int seconds = tempTime % 60; // Time in seconds
@@ -119,13 +154,13 @@ public class TimeService extends Service {
                 else
                     buffer.append("0" + seconds);
 
-                String currentDayTime = buffer.toString();
+                String currentDayTimeStr = buffer.toString();
 
                 bundle.clear();
-                bundle.putString("CurrentDayTime", currentDayTime);
+                bundle.putString("CurrentDayTime", currentDayTimeStr);
                 bundle.putString("Location", location);
 
-                Log.d(TAG, "run: " + currentDayTime);
+                Log.d(TAG, "run: " + currentDayTimeStr);
 
                 // Send message back to activity to updated UI. msg contains the time data in
                 // String format. The Messenger holds a reference to the handler in the activity
@@ -138,10 +173,17 @@ public class TimeService extends Service {
                     Log.d(TAG, "run: " + e);
                 }
 
+                if(startTime % 30 == 0){
+                    databaseAdapter.updateTime(totalTime,currentDayTime,location);
+                }
+
                 try {
                     Thread.sleep(1000);
                 }
-                catch (InterruptedException e){}
+                catch (InterruptedException e){ // Switched locations, flag thrown. End thread
+                    Log.d(TAG, "THREAD WAS INTERRUPTED");
+                    return;
+                }
             }
         }
     }
@@ -163,10 +205,23 @@ public class TimeService extends Service {
         @Override
         public void onReceive(Context context, Intent intent) {
             if(intent.getAction() == Constants.ENTERED_FILTER){
+
+                TimeService.intent = intent; // save the intent passed in, to retrieve location triggered
+
+                if(backgroundThread != null)
+                    backgroundThread.interrupt(); // interrupt old thread
+
+                backgroundThread = new Thread(backgroundRunnable); // Make new thread to be ran
+                backgroundThread.start();
+
                 Log.d(TAG, "onReceive: " + intent.getExtras().getString("Location"));
             }
             else if(intent.getAction() == Constants.EXITED_FILTER){
+                TimeService.intent = intent;
+                backgroundThread.interrupt(); // interrupt old thread
 
+                backgroundThread = new Thread(backgroundRunnable);
+                backgroundThread.start();
             }
         }
     }

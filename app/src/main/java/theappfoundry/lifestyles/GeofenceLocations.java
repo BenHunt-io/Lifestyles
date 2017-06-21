@@ -105,9 +105,12 @@ public class GeofenceLocations {
 //        int transparent = 255 / sliderVariable;
 //        fillColor |= (transparent << 24);
 
+        Log.d(TAG, "drawGeofence: " + location.toString());
         databaseAdapter.insertLocation(location,fillColor,strokeColor,bottomLeft.latitude,
                 bottomLeft.longitude,topLeft.latitude, topLeft.longitude, topRight.latitude,
                 topRight.longitude, bottomRight.latitude, bottomRight.longitude);
+
+        databaseAdapter.insertTime(location); // Default integers = 0 for time values
 
         // Instantiates a new Polygon object and adds points to define a rectangle
         PolygonOptions rectOptions = new PolygonOptions()

@@ -298,6 +298,8 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
 
         // Get Database connection
         databaseAdapter = new DatabaseAdapter(this);
+        databaseAdapter.insertTime("Location"); // When user isn't in a geofence
+        populateGeofenceList(); // What geofences do I want added
 
 
         startTimeService();
@@ -432,7 +434,7 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
 
         // Map.Entry<String, LatLng> is the data type. Entry is essentially a container for
         // each entry in the STUDY_LOCATONS hashmap. It iterates through all of the entries and puts
-        // them in the variable entry.
+        // them in the variable entry. It's a For Each Loop. For each element in Geofences.entrySet
         for (Map.Entry<String, LatLng> entry : GeofenceLocations.Geofences.entrySet())
             mGeofenceList.add(new Geofence.Builder()
                     // Set the request ID of the geofence. This is a string to identify this
@@ -1129,7 +1131,7 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
          */
         cameraPosition = CameraPosition.builder()
                 .target(Constants.STUDY_LOCATIONS.get("LivingRoom")) // Where? Lat/Long
-                .zoom(19) // Increasing zoom size, doubles width of visible world
+                .zoom(18) // Increasing zoom size, doubles width of visible world
                 .build(); // returns a cameraPosition instance
 
 

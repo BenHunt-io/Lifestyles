@@ -27,6 +27,6 @@ public class Constants {
     public static final HashMap<String, LatLng> STUDY_LOCATIONS = new HashMap<>();
     static {
         //STUDY_LOCATIONS.put("StudyRoom", new LatLng(29.8943909, -97.9079435));
-        STUDY_LOCATIONS.put("LivingRoom", new LatLng(29.894529, -97.908082));
+        STUDY_LOCATIONS.put("LivingRoom", new LatLng(29.898835010757672, -97.96912059187889));
     }
 }

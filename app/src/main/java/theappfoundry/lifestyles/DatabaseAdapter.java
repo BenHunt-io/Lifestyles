@@ -17,6 +17,7 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolygonOptions;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 import static android.content.ContentValues.TAG;
 import static android.database.Cursor.FIELD_TYPE_FLOAT;
@@ -28,7 +29,7 @@ import static android.database.Cursor.FIELD_TYPE_STRING;
  * Outerclass to act as interface to the innerclass database
  */
 
-public class DatabaseAdapter {
+public class DatabaseAdapter{
 
     private MyDatabaseHelper myDatabaseHelper; // handler reference to inner class
     private static SQLiteDatabase db; // database reference available to entire class
@@ -82,6 +83,11 @@ public class DatabaseAdapter {
         Log.d(TAG, "deleteTable: Table Dropped");
     }
 
+    /**
+     * Icon isn't set when the row is made. So we have to update the default value to the real value
+     * @param location
+     * @param id
+     */
     public void updateIcon(String location, int id){
         db.execSQL("UPDATE " + myDatabaseHelper.RECT_GEOTABLE +" SET " + MyDatabaseHelper.ICON +
                 "= " +id+ " WHERE " +myDatabaseHelper.LOCATION+ " = '"+ location +"';");
@@ -243,17 +249,54 @@ public class DatabaseAdapter {
 
     /**
      * Inserts totalTime and currentDayTIme
-     * @param totalTime - total time recorded being spent at that location
-     * @param currentDayTime - total time recording being spent at that location for today only
+     * @param  - total time recorded being spent at that location
+     * @param  - total time recording being spent at that location for today only
      */
-    public void insertTime(int totalTime, int currentDayTime){
+    public static void insertTime(String location){
+
 
         ContentValues contentValues = new ContentValues();
 
-        contentValues.put(MyDatabaseHelper.TOTAL_TIME, totalTime);
-        contentValues.put(MyDatabaseHelper.CURRENT_DAY_TIME, currentDayTime);
+        contentValues.put(MyDatabaseHelper.TOTAL_TIME, 0);
+        contentValues.put(MyDatabaseHelper.CURRENT_DAY_TIME, 0);
+        contentValues.put(MyDatabaseHelper.LOCATION, location);
 
-        db.insert(MyDatabaseHelper.LOCATION_STATS_TBL, null, contentValues);
+        if(db.isOpen())
+            db.insert(MyDatabaseHelper.LOCATION_STATS_TBL, null, contentValues);
+    }
+
+    public void updateTime(int totalTime, int currentDayTime, String location){
+
+        db.execSQL("UPDATE " + MyDatabaseHelper.LOCATION_STATS_TBL + " SET " +
+                MyDatabaseHelper.TOTAL_TIME +" = " + totalTime + "," + MyDatabaseHelper.CURRENT_DAY_TIME
+                + " = " + currentDayTime + " WHERE " + MyDatabaseHelper.LOCATION + " = '" + location + "'");
+        return;
+    }
+
+
+
+
+
+    public HashMap<String, Integer> getTime(String location){
+
+        HashMap<String, Integer> timeMap = new HashMap<>(); // for storing time returning two values
+        // Get TotalTime, CurrentDayTime where the location is the location passed in
+        Cursor cursor = db.rawQuery("SELECT " + MyDatabaseHelper.TOTAL_TIME + "," +
+                MyDatabaseHelper.CURRENT_DAY_TIME + " FROM " + MyDatabaseHelper.LOCATION_STATS_TBL +
+                " WHERE " + MyDatabaseHelper.LOCATION + " = '" + location + "'", null);
+
+
+        Log.d(TAG, "getTime: " +cursor.getCount());
+        cursor.moveToFirst(); // Cursor points to row -1 at first
+        int totalTime = cursor.getInt(1);
+        int currentDayTime = cursor.getInt(1);
+
+
+        timeMap.put("totalTime", totalTime);
+        timeMap.put("currentDayTime", currentDayTime);
+
+        return timeMap;
+
     }
 
 
@@ -312,7 +355,10 @@ public class DatabaseAdapter {
                 +BOTRIGHTLONG+" DOUBLE DEFAULT 0);";
         private static String CREATE_LOC_STATS_TBL = "CREATE TABLE " +LOCATION_STATS_TBL + "("
                 +LOCATION+" VARCHAR(255) PRIMARY KEY,"+TOTAL_TIME+ " INTEGER DEFAULT 0,"
-                +CURRENT_DAY_TIME+ " INTEGER DEFAULT 0;";
+                +CURRENT_DAY_TIME+ " INTEGER DEFAULT 0);";
+
+//        private static String GET_TIME_QUERY = "SELECT "+TOTAL_TIME+ ","+CURRENT_DAY_TIME+ " FROM " +
+//                LOCATION_STATS_TBL;
 
 
 
@@ -331,7 +377,8 @@ public class DatabaseAdapter {
             Toast.makeText(context, "ONCREATE", Toast.LENGTH_SHORT).show();
             try {
                 //Create the tables
-                db.execSQL(CREATE_GEOTABLE+CREATE_LOC_STATS_TBL);
+                db.execSQL(CREATE_GEOTABLE);
+                db.execSQL(CREATE_LOC_STATS_TBL);
 
             }catch(SQLException e){
                 Log.d(TAG, "onCreate: " + e);
