@@ -102,7 +102,7 @@ import java.util.Map;
 
 import yuku.ambilwarna.AmbilWarnaDialog; // For Color Picker
 
-public class Geofencing extends AppCompatActivity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationListener, ResultCallback<Status> , OnMapReadyCallback, View.OnTouchListener, AmbilWarnaDialog.OnAmbilWarnaListener, PlaceSelectionListener, DialogWindowPopUp.NoticeDialogListener, GoogleMap.OnMarkerClickListener {
+public class Geofencing extends AppCompatActivity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationListener , OnMapReadyCallback, View.OnTouchListener, AmbilWarnaDialog.OnAmbilWarnaListener, PlaceSelectionListener, DialogWindowPopUp.NoticeDialogListener, GoogleMap.OnMarkerClickListener {
 
 
     private ConstraintLayout searchBarContainer;
@@ -298,15 +298,34 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
 
         // Get Database connection
         databaseAdapter = new DatabaseAdapter(this);
-        databaseAdapter.insertTime("Location"); // When user isn't in a geofence
-        populateGeofenceList(); // What geofences do I want added
+        if(!databaseAdapter.rowExists("Away"))
+            databaseAdapter.insertTime("Away"); // When user isn't in a geofence
 
+        //populateGeofenceList(); // What geofences do I want added
+
+
+
+
+
+
+
+    }
+
+
+    @Override
+    protected void onResume() {
 
         startTimeService();
 
 
+        super.onResume();
+    }
 
-
+    @Override
+    protected void onDestroy() {
+        Intent intent = new Intent(this, DatabaseService.class);
+        stopService(intent);
+        super.onDestroy();
     }
 
     /**
@@ -356,6 +375,10 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
          * invokes callback onLocationChanged
          */
         startLocationUpdates();
+
+        Log.d(TAG, "onConnected: onStartCommand: ");
+        DatabaseService.mGoogleApiClient = mGoogleApiClient; // Give database service a ref to the google api clienet
+        startDatabaseService();
 
 
     }
@@ -424,90 +447,6 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
     }
 
 
-    /**
-     * Map.Entry<String, LatLng> is the data type. Entry is essentially a container for
-     * each entry in the STUDY_LOCATONS hashmap. It iterates through all of the entries and puts
-     * them in the variable entry. Then builds a geofence using new Geofence.Builder() which returns
-     * a reference to a geofence.
-     */
-    public void populateGeofenceList() {
-
-        // Map.Entry<String, LatLng> is the data type. Entry is essentially a container for
-        // each entry in the STUDY_LOCATONS hashmap. It iterates through all of the entries and puts
-        // them in the variable entry. It's a For Each Loop. For each element in Geofences.entrySet
-        for (Map.Entry<String, LatLng> entry : GeofenceLocations.Geofences.entrySet())
-            mGeofenceList.add(new Geofence.Builder()
-                    // Set the request ID of the geofence. This is a string to identify this
-                    // geofence.
-                    .setRequestId(entry.getKey())
-
-                    // Set the circular region of this geofence
-                    .setCircularRegion(
-                            entry.getValue().latitude,
-                            entry.getValue().longitude,
-                            Constants.GEOFENCE_RADIUS_IN_METERS
-                    )
-
-                    .setExpirationDuration(Constants.GEOFENCE_EXPIRATION_IN_MILLISECONDS)
-                    .setLoiteringDelay(10000) // 30 sesc till Initiali DWELL trigger is set off
-
-
-                    .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER | Geofence.GEOFENCE_TRANSITION_EXIT
-                            | Geofence.GEOFENCE_TRANSITION_DWELL)
-                    .build());
-
-    }
-
-
-    //. The GEOFENCE_TRANSITION_ENTER transition triggers when a device enters a geofence,
-    // and the GEOFENCE_TRANSITION_EXIT transition triggers when a device exits a geofence.
-    // Specifying INITIAL_TRIGGER_ENTER tells Location services that GEOFENCE_TRANSITION_ENTER
-    // should be triggered if the the device is already inside the geofence.
-    // Dwell - User has to be in the geofence for a certain amount of time.
-    private GeofencingRequest getGeofencingRequest() {
-        GeofencingRequest.Builder builder = new GeofencingRequest.Builder();
-        builder.setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_DWELL | GeofencingRequest.INITIAL_TRIGGER_ENTER);
-        builder.addGeofences(mGeofenceList);
-        return builder.build();
-    }
-
-
-    private PendingIntent getGeofencePendingIntent() {
-        // Reuse the PendingIntent if we already have it.
-        if (mGeofencePendingIntent != null) {
-            return mGeofencePendingIntent;
-        }
-        Toast.makeText(this, "GetGeofencePendingIntent", Toast.LENGTH_SHORT).show();
-        Intent intent = new Intent(this, GeofenceTransitionsIntentService.class);
-        // We use FLAG_UPDATE_CURRENT so that we get the same pending intent back when
-        // calling addGeofences() and removeGeofences().
-        return PendingIntent.getService(this, 0, intent, PendingIntent.
-                FLAG_UPDATE_CURRENT);
-    }
-
-    public void addGeofences() {
-        if (!mGoogleApiClient.isConnected()) {
-            Toast.makeText(this, getString(R.string.not_connected), Toast.LENGTH_SHORT).show();
-            return;
-        }
-        try {
-            LocationServices.GeofencingApi.addGeofences(
-                    mGoogleApiClient,
-                    getGeofencingRequest(),
-                    getGeofencePendingIntent()
-            ).setResultCallback(this);
-        }catch(SecurityException securityException){
-            Log.d(TAG, securityException.getMessage());
-            Toast.makeText(this, "Did not add geofence", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        Toast.makeText(this, "ADDED GEOFENCE", Toast.LENGTH_SHORT).show();
-    }
-    @Override
-    public void onResult(@NonNull Status status) {
-        Toast.makeText(this, "ONRESULT", Toast.LENGTH_SHORT).show();
-        Toast.makeText(this, status.toString(), Toast.LENGTH_SHORT).show();
-    }
 
 
 
@@ -584,9 +523,9 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
                     break;
                 case R.id.addGeofenceButton:
                     if (GeofenceLocations.Geofences != null) {
-                        populateGeofenceList(); // add the rectangle the user created to geofence list.
+//                        populateGeofenceList(); // add the rectangle the user created to geofence list.
                         // probably don't need.. It get's called in addGeofences getGeofencingRequest();
-                        addGeofences();
+//                        addGeofences();
                     }
                     break;
                 case R.id.drawGeoButton:
@@ -1224,6 +1163,17 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
 
 
         Log.d(TAG, "startTimeService: ");
+
+    }
+
+    // Offload Database tasks
+    public void startDatabaseService(){
+
+
+        Intent intent = new Intent(this, DatabaseService.class);
+        intent.putExtra("functionName", Constants.POPULATE_GEOFENCE_LIST); // function name
+        startService(intent);
+
 
     }
 

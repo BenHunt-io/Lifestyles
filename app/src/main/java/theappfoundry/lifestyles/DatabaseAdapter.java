@@ -145,6 +145,43 @@ public class DatabaseAdapter{
 
 
     /**
+     * Each Location has a LatLng associated with it that represents the center of the geofence
+     * @return HashMap of Location/LatLng Pairs for Geofence Locations
+     */
+    public HashMap<String,LatLng> getGeofenceLatLng(){
+
+        HashMap<String, LatLng> geofenceLatLng = new HashMap<>();
+
+        Cursor cursor = db.rawQuery("SELECT  " + MyDatabaseHelper.LOCATION +","+MyDatabaseHelper.LatLng
+                + " FROM " + MyDatabaseHelper.RECT_GEOTABLE, null);
+
+        int columnCount = cursor.getColumnCount();
+        cursor.moveToFirst();
+
+        double sumLat = 0;
+        double sumLong = 0;
+
+        if(cursor.getCount() > 0) {
+            do {
+                for (int i = 1; i < columnCount; i += 2) {
+                    sumLat += cursor.getDouble(i);
+                    sumLong += cursor.getDouble(i + 1);
+                    Log.d(TAG, "getGeofenceLatLng: " + cursor.getDouble(i));
+                    Log.d(TAG, "getGeofenceLatLng: " + cursor.getDouble(i+1));
+                }
+                LatLng latLng = new LatLng(sumLat / 4, sumLong / 4);
+                String location = cursor.getString(cursor.getColumnIndex(MyDatabaseHelper.LOCATION));
+                geofenceLatLng.put(location, latLng);
+
+            } while (cursor.moveToNext());
+        }
+
+
+        return geofenceLatLng;
+    }
+
+
+    /**
      * Makes a query on the database on all the columns and returns a cursor. Cursor is then set to
      * the first Column. Loop through the columns and append the data to the stringbuffer depending
      * on the datatype. After an entire record/row has been processed, move cursor to the next row
@@ -254,15 +291,19 @@ public class DatabaseAdapter{
      */
     public static void insertTime(String location){
 
-
+        Log.d(TAG, "insertTime: inserted");
         ContentValues contentValues = new ContentValues();
 
         contentValues.put(MyDatabaseHelper.TOTAL_TIME, 0);
         contentValues.put(MyDatabaseHelper.CURRENT_DAY_TIME, 0);
         contentValues.put(MyDatabaseHelper.LOCATION, location);
 
-        if(db.isOpen())
+//        Cursor cursor = db.rawQuery("SELECT " + MyDatabaseHelper.LOCATION + " FROM " +
+//                MyDatabaseHelper.RECT_GEOTABLE + " WHERE " + MyDatabaseHelper.LOCATION +" = 'Away'",null);
+
+
             db.insert(MyDatabaseHelper.LOCATION_STATS_TBL, null, contentValues);
+        Log.d(TAG, "insertTime: inserted: " + location);
     }
 
     public void updateTime(int totalTime, int currentDayTime, String location){
@@ -273,12 +314,36 @@ public class DatabaseAdapter{
         return;
     }
 
+    public boolean rowExists(String locationRow){
+
+
+            Cursor cursor = db.rawQuery("SELECT " + MyDatabaseHelper.LOCATION + " FROM " +
+                            myDatabaseHelper.LOCATION_STATS_TBL + " WHERE " +
+                            MyDatabaseHelper.LOCATION + " = '" + locationRow + "'",null);
+
+
+        // Check to see if row exists. 
+        if(cursor.getCount() == 0) {
+            cursor.close();
+            Log.d(TAG, "rowExists: false ");
+            return false;
+        }
+        else {
+            Log.d(TAG, "rowExists: true ");
+            cursor.close();
+            return true;
+        }
+
+
+    }
+
 
 
 
 
     public HashMap<String, Integer> getTime(String location){
 
+        Log.d(TAG, "getTime: " + location);
         HashMap<String, Integer> timeMap = new HashMap<>(); // for storing time returning two values
         // Get TotalTime, CurrentDayTime where the location is the location passed in
         Cursor cursor = db.rawQuery("SELECT " + MyDatabaseHelper.TOTAL_TIME + "," +
@@ -288,6 +353,7 @@ public class DatabaseAdapter{
 
         Log.d(TAG, "getTime: " +cursor.getCount());
         cursor.moveToFirst(); // Cursor points to row -1 at first
+
         int totalTime = cursor.getInt(1);
         int currentDayTime = cursor.getInt(1);
 

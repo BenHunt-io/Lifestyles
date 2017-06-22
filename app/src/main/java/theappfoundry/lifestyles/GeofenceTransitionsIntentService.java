@@ -55,10 +55,11 @@ public class GeofenceTransitionsIntentService extends IntentService{
                 String errorMessage = GeofenceErrorMessages.getErrorString(this,
                         geofencingEvent.getErrorCode());
                 Log.e(TAG, errorMessage);
-                Toast.makeText(this, errorMessage.toString(), Toast.LENGTH_SHORT).show();
+                //Toast.makeText(this, errorMessage.toString(), Toast.LENGTH_SHORT).show();
                 return;
             }
-            Toast.makeText(this, "IN GEOFENCE TIS", Toast.LENGTH_SHORT).show();
+
+            //Toast.makeText(this, "IN GEOFENCE TIS", Toast.LENGTH_SHORT).show();
             // Get the transition type.
             int geofenceTransition = geofencingEvent.getGeofenceTransition();
 
@@ -81,7 +82,7 @@ public class GeofenceTransitionsIntentService extends IntentService{
                 // Send notification and log the transition details.
                 sendNotification(geofenceTransitionDetails);
                 Log.i(TAG, geofenceTransitionDetails);
-                Toast.makeText(this, "After sendNotification: " + geofenceTransitionDetails, Toast.LENGTH_SHORT).show();
+                //Toast.makeText(this, "After sendNotification: " + geofenceTransitionDetails, Toast.LENGTH_SHORT).show();
 
 
                 // Sends a broadcast intent to the receiver in the TimeService class.
@@ -103,9 +104,11 @@ public class GeofenceTransitionsIntentService extends IntentService{
 
             } else {
                 // Log the error.
+                // Error code 4 is a Transition Dwell
                 Log.e(TAG, getString(R.string.geofence_transition_invalid_type,
                         geofenceTransition));
-                Toast.makeText(this, "invalid transition type", Toast.LENGTH_SHORT).show();
+                // Using a toast in a service can have it suspended indefinitely if service closes
+                //Toast.makeText(this, "invalid transition type", Toast.LENGTH_SHORT).show();
             }
 
 

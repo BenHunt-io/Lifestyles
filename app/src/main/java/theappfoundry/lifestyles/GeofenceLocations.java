@@ -77,8 +77,10 @@ public class GeofenceLocations {
         drawGeofence(myMap, topLeftLL, topRightLL, bottomLeftLL, bottomRightLL, key);
 
 
-        double rectMidy = (bottomRightLL.latitude + topRightLL.latitude)/2;
-        double rectMidx = (topRightLL.longitude + topLeftLL.longitude)/2;
+        double rectMidy = (topLeftLL.latitude + topRightLL.latitude + bottomLeftLL.latitude
+                        +bottomRightLL.latitude)/4;
+        double rectMidx = (topLeftLL.longitude + topRightLL.longitude + bottomLeftLL.longitude
+                +bottomRightLL.longitude)/4;
 
         LatLng middleOfRect = new LatLng(rectMidy,rectMidx);
         Geofences.put(key,middleOfRect);

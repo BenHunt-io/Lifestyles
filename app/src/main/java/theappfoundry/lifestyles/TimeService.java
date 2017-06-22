@@ -75,7 +75,7 @@ public class TimeService extends Service {
             }
         }
 
-
+        // START_STICKY: Service is restarted in the event that it is destroyed
         return START_STICKY;
     }
 
@@ -224,6 +224,13 @@ public class TimeService extends Service {
                 backgroundThread.start();
             }
         }
+    }
+
+
+    @Override
+    public void onDestroy() {
+        Log.d(TAG, "onDestroy: TIMESERVICE");
+        super.onDestroy();
     }
 }
 
