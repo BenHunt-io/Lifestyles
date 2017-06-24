@@ -45,7 +45,13 @@ public class GeofenceTransitionsIntentService extends IntentService{
         }
 
 
-        // Location services will send an intent. So this IntentService thread is just kind of
+    @Override
+    public void onStart(@Nullable Intent intent, int startId) {
+        Log.d(TAG, "onStart: GeoFenceTransitionIntentService");
+        super.onStart(intent, startId);
+    }
+
+    // Location services will send an intent. So this IntentService thread is just kind of
         // sitting around until it arrives. Once it arrives it is checked. From what I've read it
         // appears that Location services adds that GEOFENCE transition data to the pending intent
         // and then sends it to this service with the intent we provided.

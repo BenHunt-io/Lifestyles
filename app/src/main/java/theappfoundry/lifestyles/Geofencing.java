@@ -102,7 +102,7 @@ import java.util.Map;
 
 import yuku.ambilwarna.AmbilWarnaDialog; // For Color Picker
 
-public class Geofencing extends AppCompatActivity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationListener , OnMapReadyCallback, View.OnTouchListener, AmbilWarnaDialog.OnAmbilWarnaListener, PlaceSelectionListener, DialogWindowPopUp.NoticeDialogListener, GoogleMap.OnMarkerClickListener {
+public class Geofencing extends AppCompatActivity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationListener, OnMapReadyCallback, View.OnTouchListener, AmbilWarnaDialog.OnAmbilWarnaListener, PlaceSelectionListener, DialogWindowPopUp.NoticeDialogListener, GoogleMap.OnMarkerClickListener {
 
 
     private ConstraintLayout searchBarContainer;
@@ -176,6 +176,11 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
     public float actionBarHeight; // (Top Nav Bar)
     private ActionBar myActionBar; // The top nav bar
 
+    private Spinner mapTypeSpinner;
+    private String[] mapTypes;
+
+    private Handler handler;
+    private Messenger messenger;
 
     //////////////////////// Drawing Rectangle /////////////////////////////////////
 
@@ -190,9 +195,7 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
     /////////////////////////////////////////////////////////////////////////////////
 
     private DatabaseAdapter databaseAdapter;
-
-
-
+    private DatabaseServiceManager databaseServiceManager; // starts services involving database
 
 
     /**
@@ -209,11 +212,30 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_geofencing);
 
+
+        // get reference to UI thread's handler. TimeHandler is my subclass of Handler
+        handler = new TimeHandler();
+        messenger = new Messenger(handler); // Messenger is subclass of Parcelable
+
+        // Get the String[] of Map types from resources for use in spinner
+        mapTypes = getResources().getStringArray(R.array.Location_Array);
+        mapTypeSpinner = (Spinner) findViewById(R.id.mapTypeSpinner);
+
+        // Make arrayAdapter to apply the string[] to the spinner
+        ArrayAdapter<String> arrayAdapter = new ArrayAdapter<String>(this, R.layout.simple_spinner_item,mapTypes);
+
+        // Set the adapter on the spinner
+        mapTypeSpinner.setAdapter(arrayAdapter);
+
+        // This needs to be running until Activity is completely destroyed, so only needs to be
+        // called once. Needs to track time constantly.
+       startTimeService();
+
         setStatusBarHeight();
 
         Log.d(TAG, "onCreate: ");
 
-        myToolbar = (Toolbar)findViewById(R.id.my_toolbar);
+        myToolbar = (Toolbar) findViewById(R.id.my_toolbar);
         setSupportActionBar(myToolbar); // sets toolbar as app bar for the activity
         // Returns reference to an appcompat ActionBar object
         myActionBar = getSupportActionBar();
@@ -225,27 +247,24 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
         // Set Title :)
 
 
-
         myActionBar.setIcon(R.drawable.cronos_logo_v1);
-
 
 
         // Initially set the PendingIntent used in addGeofences() and removeGeofences() to null.
         mGeofencePendingIntent = null;
 
 
-        locationButton = (Button) findViewById(R.id.locationButton);
-        addGeofenceButton = (Button) findViewById(R.id.addGeofenceButton);
-       // addMapButton =  (Button) findViewById(R.id.addMapButton);
+        //locationButton = (Button) findViewById(R.id.locationButton);
+        //addGeofenceButton = (Button) findViewById(R.id.addGeofenceButton);
+        // addMapButton =  (Button) findViewById(R.id.addMapButton);
         drawGeoButton = (ImageButton) findViewById(R.id.drawGeoButton);
         //confirmLocation = (Button)findViewById(R.id.confirmLocation);
-        fillButton = (ImageButton)findViewById(R.id.fillButton);
-        strokeButton = (ImageButton)findViewById(R.id.strokeButton);
+        fillButton = (ImageButton) findViewById(R.id.fillButton);
+        strokeButton = (ImageButton) findViewById(R.id.strokeButton);
 
 
-
-        locationButton.setOnTouchListener(this);
-        addGeofenceButton.setOnTouchListener(this);
+//        locationButton.setOnTouchListener(this);
+//        addGeofenceButton.setOnTouchListener(this);
 //        addMapButton.setOnTouchListener(this);
         drawGeoButton.setOnTouchListener(this);
 //        confirmLocation.setOnTouchListener(this);
@@ -263,6 +282,7 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
         mGeofenceList = new ArrayList<Geofence>();
 
         buildGoogleApiClient(); // Makes an instance of the google API
+        mGoogleApiClient.connect(); // APIclient with request LocationServices
 
         // Get the geofences used. Geofence data is hard coded in this sample.
         // populateGeofenceList(); // What geofences do I want added
@@ -274,8 +294,8 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
         myRectLayout = (RelativeLayout) findViewById(R.id.rectangleLayout);
         mCustomDrawableView = new Geofencing.CustomDrawableView(this); // Make instan0-ce of CustomDrawableView
 
-        searchBarContainer = (ConstraintLayout)findViewById(R.id.searchBarContainer);
-        leftToolBarContainer = (LinearLayout)findViewById(R.id.leftToolBarContainer);
+        searchBarContainer = (ConstraintLayout) findViewById(R.id.searchBarContainer);
+        leftToolBarContainer = (LinearLayout) findViewById(R.id.leftToolBarContainer);
 
 
         // Have to have resolved color to pass it into paint.setColor for the drawable..
@@ -292,19 +312,21 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
 
 
         loadGoogleMaps(); // Essentially initializes and starts GoogleMaps
-        initLocationSpinner();
+//        initializeLocationSpinner();
 
+        jumpToSpinner = (Spinner)findViewById(R.id.jumpToSpinner); // Make Spinner View
 
 
         // Get Database connection
         databaseAdapter = new DatabaseAdapter(this);
-        if(!databaseAdapter.rowExists("Away"))
+        if (!databaseAdapter.rowExists("Away"))
             databaseAdapter.insertTime("Away"); // When user isn't in a geofence
 
         //populateGeofenceList(); // What geofences do I want added
 
+        databaseServiceManager = new DatabaseServiceManager(this);
 
-
+        databaseServiceManager.readInSpinner();
 
 
 
@@ -313,9 +335,14 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
 
 
     @Override
-    protected void onResume() {
+    protected void onPause() {
+        Log.d(TAG, "onPause: ");
+        super.onPause();
+    }
 
-        startTimeService();
+    @Override
+    protected void onResume() {
+        Log.d(TAG, "onResume: ");
 
 
         super.onResume();
@@ -323,8 +350,8 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
 
     @Override
     protected void onDestroy() {
-        Intent intent = new Intent(this, DatabaseService.class);
-        stopService(intent);
+        //Intent intent = new Intent(this, DatabaseService.class);
+        //stopService(intent);
         super.onDestroy();
     }
 
@@ -342,9 +369,9 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
 
     // To actually connect to Gplay Services
     protected void onStart() {
-        mGoogleApiClient.connect();
+        Log.d(TAG, "onStart: ");
+        //mGoogleApiClient.connect();
         super.onStart();
-
 
 
 //        confirmLocation.setVisibility(View.INVISIBLE);
@@ -354,7 +381,8 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
 
     // To actually disconnect from Gplay Services
     protected void onStop() {
-        mGoogleApiClient.disconnect();
+        Log.d(TAG, "onStop: ");
+        //mGoogleApiClient.disconnect();
         super.onStop();
     }
 
@@ -376,9 +404,11 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
          */
         startLocationUpdates();
 
-        Log.d(TAG, "onConnected: onStartCommand: ");
+        Log.d(TAG, "onConnected: ");
+        // Static references like this can be a memory leak.. #TODO FIX
         DatabaseService.mGoogleApiClient = mGoogleApiClient; // Give database service a ref to the google api clienet
-        startDatabaseService();
+        databaseServiceManager.populateGeofenceList();
+
 
 
     }
@@ -426,8 +456,6 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
     }
 
 
-
-
     @Override
     public void onLocationChanged(Location location) {
 
@@ -447,9 +475,6 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
     }
 
 
-
-
-
     /**
      * CallBack method from getMapAsync(), callback triggered when map is ready for use
      * Can use GoogleMap object to set view options for the map or a marker for ex.
@@ -464,6 +489,17 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
         myMap = googleMap; // googleMap holds a reference to myMap
         myMap.setOnMarkerClickListener(this);
 
+        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return;
+        }
+        myMap.setMyLocationEnabled(true);
 
         // Get polygons from database (geofences) and add them to the map.
         ArrayList<PolygonOptions> rectOptions = databaseAdapter.getPolygonRectOptions();
@@ -502,32 +538,32 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
 
         if (action == MotionEvent.ACTION_DOWN) {
             switch (v.getId()) {
-                case R.id.locationButton:
-                    if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                        // TODO: Consider calling
-                        //    ActivityCompat#requestPermissions
-                        // here to request the missing permissions, and then overriding
-                        //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                        //                                          int[] grantResults)
-                        // to handle the case where the user grants the permission. See the documentation
-                        // for ActivityCompat#requestPermissions for more details.
-                        // The below statement requests permissions
-//                    ActivityCompat.requestPermissions(this,
-//                            new String[]{
-//                                    android.Manifest.permission.ACCESS_COARSE_LOCATION},
-//                            REQUEST_COURSE_ACCESS)
-                    }
-                    mLatitudeText = (String.valueOf(mCurrentLocation.getLatitude())); // get updated value
-                    mLongitudeText = (String.valueOf(mCurrentLocation.getLongitude())); // get updated value
-                    Toast.makeText(this, mLatitudeText + " " + mLongitudeText, Toast.LENGTH_SHORT).show();
-                    break;
-                case R.id.addGeofenceButton:
-                    if (GeofenceLocations.Geofences != null) {
-//                        populateGeofenceList(); // add the rectangle the user created to geofence list.
-                        // probably don't need.. It get's called in addGeofences getGeofencingRequest();
-//                        addGeofences();
-                    }
-                    break;
+//                case R.id.locationButton:
+//                    if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+//                        // TODO: Consider calling
+//                        //    ActivityCompat#requestPermissions
+//                        // here to request the missing permissions, and then overriding
+//                        //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+//                        //                                          int[] grantResults)
+//                        // to handle the case where the user grants the permission. See the documentation
+//                        // for ActivityCompat#requestPermissions for more details.
+//                        // The below statement requests permissions
+////                    ActivityCompat.requestPermissions(this,
+////                            new String[]{
+////                                    android.Manifest.permission.ACCESS_COARSE_LOCATION},
+////                            REQUEST_COURSE_ACCESS)
+//                    }
+//                    mLatitudeText = (String.valueOf(mCurrentLocation.getLatitude())); // get updated value
+//                    mLongitudeText = (String.valueOf(mCurrentLocation.getLongitude())); // get updated value
+//                    Toast.makeText(this, mLatitudeText + " " + mLongitudeText, Toast.LENGTH_SHORT).show();
+//                    break;
+//                case R.id.addGeofenceButton:
+//                    if (GeofenceLocations.Geofences != null) {
+////                        populateGeofenceList(); // add the rectangle the user created to geofence list.
+//                        // probably don't need.. It get's called in addGeofences getGeofencingRequest();
+////                        addGeofences();
+//                    }
+//                    break;
                 case R.id.drawGeoButton:
                     isDrawingGeofence = !isDrawingGeofence;
                     Log.d(TAG, "BENNY" + isDrawingGeofence);
@@ -1110,13 +1146,10 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
     /**
      * Initialize Spinner
      */
-    public void initLocationSpinner(){
-
-        spinnerList = new ArrayList<>();
-//        if(GeofenceLocations.sharedPreferences.getAll().size() == null)
-//            spinnerList.add("Empty");
+    public void initializeLocationSpinner(){
 
         jumpToSpinner = (Spinner)findViewById(R.id.jumpToSpinner); // Make Spinner View
+
         // // Create an ArrayAdapter using the string array and a default spinner layout
         ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(this,
                 R.layout.simple_spinner_item, spinnerList);
@@ -1127,24 +1160,45 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
 
     }
 
-    public static class TimeHandler extends Handler{
+    public class TimeHandler extends Handler{
 
         public TimeHandler(){
             super();
         }
 
+
+        /**
+         * Data sent back from services.. Handle it here
+         * Switch statement switches between function names Database service. Time Service has some
+         * data being sent, whose key is not representative of function name rather what data is
+         * simply being passed.
+         * @param msg
+         */
         @Override
         public void handleMessage(Message msg) {
 
 //            if(msg.getData().containsKey("CurrentDayTime")){
 
-                // Update the UI (Time text 00:00:00 with data from TimeService)
-                String time = msg.getData().getString("CurrentDayTime"); // Time in seconds
-                timeText.setText(time);
+            switch (msg.getData().getString(Constants.KEY)) {
+
+                case Constants.READ_IN_SPINNER:
+                    // Puts stored Locations into spinner
+                    String[] allLocations = msg.getData().getStringArray(Constants.READ_IN_SPINNER);
+                    ArrayAdapter<String> arrayAdapter = new ArrayAdapter<>(getBaseContext(), R.layout.simple_spinner_item,
+                            allLocations);
+                    jumpToSpinner.setAdapter(arrayAdapter);
+                    break;
+                case Constants.CURRENT_DAY_TIME:
+                    // Update the UI (Time text 00:00:00 with data from TimeService)
+                    String time = msg.getData().getString(Constants.CURRENT_DAY_TIME); // Time in seconds
+                    timeText.setText(time);
+                    break;
+
+            }
 
 //            }
 
-            //Default constructor associates this handler with the Looper for the current thread.
+            // Super class definition of handleMsg
             super.handleMessage(msg);
         }
     }
@@ -1156,7 +1210,6 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
             Log.d(TAG, "startTimeService: null");
         }
         Intent serviceIntent = new Intent(this,TimeService.class);
-        Messenger messenger = new Messenger(handler); // Messenger is subclass of Parcelable
         serviceIntent.putExtra("Handler", messenger);
         serviceIntent.putExtra("key", "startService");
         startService(serviceIntent);
@@ -1166,13 +1219,39 @@ public class Geofencing extends AppCompatActivity implements GoogleApiClient.Con
 
     }
 
-    // Offload Database tasks
-    public void startDatabaseService(){
+    /**
+     * Offloads tasks to a service called DatabaseService. Runs querys and ect in a background thread
+     * All function names are stored in a file named Constants
+     */
+    public class DatabaseServiceManager{
+
+        private Context context; // context from the outer class
+        // For starting DatabaseService and passing in a Messenger which has a reference to the
+        // Handler of the UI thread.
+        private Intent intent;
+        // Name of the function to get executed in Database Service. Acts as a Key for intent Extras
+        private static final String FUNCTION_NAME = "functionName";
 
 
-        Intent intent = new Intent(this, DatabaseService.class);
-        intent.putExtra("functionName", Constants.POPULATE_GEOFENCE_LIST); // function name
-        startService(intent);
+        DatabaseServiceManager(Context context){
+            this.context = context;
+        }
+
+
+        public void populateGeofenceList(){
+            intent = new Intent(getBaseContext(), DatabaseService.class);
+            intent.putExtra(FUNCTION_NAME, Constants.POPULATE_GEOFENCE_LIST); // function name
+            getBaseContext().startService(intent);
+        }
+
+        public void readInSpinner(){
+            intent = new Intent(getBaseContext(), DatabaseService.class);
+            intent.putExtra(FUNCTION_NAME, Constants.READ_IN_SPINNER);
+            intent.putExtra("Handler", messenger);
+            getBaseContext().startService(intent);
+        }
+
+
 
 
     }

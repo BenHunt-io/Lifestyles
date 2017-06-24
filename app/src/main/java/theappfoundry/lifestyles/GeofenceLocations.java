@@ -1,6 +1,7 @@
 package theappfoundry.lifestyles;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Color;
@@ -113,6 +114,7 @@ public class GeofenceLocations {
                 topRight.longitude, bottomRight.latitude, bottomRight.longitude);
 
         databaseAdapter.insertTime(location); // Default integers = 0 for time values
+        startDatabaseService();
 
         // Instantiates a new Polygon object and adds points to define a rectangle
         PolygonOptions rectOptions = new PolygonOptions()
@@ -126,6 +128,16 @@ public class GeofenceLocations {
 
 
 
+
+
+    }
+
+    public void startDatabaseService(){
+
+
+        Intent intent = new Intent(context, DatabaseService.class);
+        intent.putExtra("functionName", Constants.POPULATE_GEOFENCE_LIST); // function name
+        context.startService(intent);
 
 
     }

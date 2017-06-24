@@ -7,9 +7,11 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" /> -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"></uses-permission>
 
+    <!-- Set allowBackup to false, so that the database clears on uninstall -->
     <application
-        android:allowBackup="true"
+        android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
@@ -39,10 +41,11 @@
             <intent-filter>
                 <action android:name="Entered_Geofence"></action>
                 <action android:name="Exited_Geofence"></action>
-
             </intent-filter>
 
         </receiver>
+        <!-- Exported-  So other applications(processes) can interact with this-->
+        <!-- Process - Making the service a seperate process from the normal process-->
         <service android:name=".GeofenceTransitionsIntentService" />
         <service android:name=".TimeService"></service>
         <service android:name=".DatabaseService"></service>

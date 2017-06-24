@@ -7,6 +7,7 @@ import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.graphics.drawable.Drawable;
+import android.os.Environment;
 import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import android.widget.Toast;
@@ -16,6 +17,7 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolygonOptions;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -42,6 +44,12 @@ public class DatabaseAdapter{
         // Get a reference to inner class, pass in context
         myDatabaseHelper = new MyDatabaseHelper(context); // instance of inner class
         db = myDatabaseHelper.getWritableDatabase(); // Open database when app starts
+
+//        db.execSQL("DROP TABLE " + myDatabaseHelper.RECT_GEOTABLE);
+//        db.execSQL("DROP TABLE " + myDatabaseHelper.LOCATION_STATS_TBL);
+//        db.execSQL("DROP TABLE " + myDatabaseHelper.LAST_LOCATION_TBL);
+//        db.close();
+
 
     }
 
@@ -91,6 +99,27 @@ public class DatabaseAdapter{
     public void updateIcon(String location, int id){
         db.execSQL("UPDATE " + myDatabaseHelper.RECT_GEOTABLE +" SET " + MyDatabaseHelper.ICON +
                 "= " +id+ " WHERE " +myDatabaseHelper.LOCATION+ " = '"+ location +"';");
+
+    }
+
+    public String[] getAllLocations(){
+
+        // Gets a cursor pointing to all Geofence location saved
+        Cursor cursor = db.rawQuery("SELECT " + MyDatabaseHelper.LOCATION + " FROM " +
+                MyDatabaseHelper.LOCATION_STATS_TBL, null);
+
+        cursor.moveToFirst();
+
+        String[] allLocations = new String[cursor.getCount()];
+
+        int i = 0;
+        // Store and return all the geofence locations from the subtable the cursor is pointing at
+        do {
+            allLocations[i] = cursor.getString(cursor.getColumnIndex(MyDatabaseHelper.LOCATION));
+            i++;
+        }while(cursor.moveToNext());
+
+        return allLocations;
 
     }
 
@@ -306,6 +335,21 @@ public class DatabaseAdapter{
         Log.d(TAG, "insertTime: inserted: " + location);
     }
 
+
+//    public static void insertLastLocation(String location){
+//
+//        Log.d(TAG, "insertTime: inserted");
+//
+//        // Make a row
+//        ContentValues contentValues = new ContentValues();
+//        contentValues.put(MyDatabaseHelper.LOCATION, location);
+//
+//
+//        db.insert(MyDatabaseHelper.LOCATION_STATS_TBL, null, contentValues);
+//
+//        Log.d(TAG, "insertTime: inserted: " + location);
+//    }
+
     public void updateTime(int totalTime, int currentDayTime, String location){
 
         db.execSQL("UPDATE " + MyDatabaseHelper.LOCATION_STATS_TBL + " SET " +
@@ -314,25 +358,47 @@ public class DatabaseAdapter{
         return;
     }
 
+    public void updateLastLocation(String location){
+
+        // Deletes all rows
+        Cursor cursor = db.rawQuery("SELECT * FROM " + MyDatabaseHelper.LAST_LOCATION_TBL,null);
+        Log.d(TAG, "updateLastLocation: " + cursor.getCount());
+        db.execSQL("DELETE FROM " + MyDatabaseHelper.LAST_LOCATION_TBL);
+
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(MyDatabaseHelper.LOCATION, location);
+
+
+        db.insert(MyDatabaseHelper.LAST_LOCATION_TBL, null, contentValues);
+
+        Log.d(TAG, "insertTime: inserted: " + location);
+    }
+
+
     public boolean rowExists(String locationRow){
 
-
+        try {
             Cursor cursor = db.rawQuery("SELECT " + MyDatabaseHelper.LOCATION + " FROM " +
-                            myDatabaseHelper.LOCATION_STATS_TBL + " WHERE " +
-                            MyDatabaseHelper.LOCATION + " = '" + locationRow + "'",null);
-
-
-        // Check to see if row exists. 
-        if(cursor.getCount() == 0) {
-            cursor.close();
-            Log.d(TAG, "rowExists: false ");
+                    myDatabaseHelper.LOCATION_STATS_TBL + " WHERE " +
+                    MyDatabaseHelper.LOCATION + " = '" + locationRow + "'", null);
+            // Check to see if row exists.
+            if(cursor.getCount() == 0) {
+                cursor.close();
+                Log.d(TAG, "rowExists: false ");
+                return false;
+            }
+            else {
+                Log.d(TAG, "rowExists: true ");
+                cursor.close();
+                return true;
+            }
+        }catch(SQLException e) {
+            Log.d(TAG, "rowExists: " + e);
             return false;
         }
-        else {
-            Log.d(TAG, "rowExists: true ");
-            cursor.close();
-            return true;
-        }
+
+
+
 
 
     }
@@ -362,6 +428,17 @@ public class DatabaseAdapter{
         timeMap.put("currentDayTime", currentDayTime);
 
         return timeMap;
+
+    }
+
+    public String getLastLocation(){
+
+        Cursor cursor = db.rawQuery("SELECT * FROM " + MyDatabaseHelper.LAST_LOCATION_TBL, null);
+        cursor.moveToFirst();
+
+        String location = cursor.getString(cursor.getColumnIndex(MyDatabaseHelper.LOCATION));
+
+        return location;
 
     }
 
@@ -404,7 +481,11 @@ public class DatabaseAdapter{
         private static String CURRENT_DAY_TIME ="CURRENT_DAY_TIME"; // Time spent during current day
 
 
-        //////////////////////////////////////////////////////////////////////
+        ///////////////////// LAST_LOCATION_TBL ///////////////////////////////
+        // (Location is primary key and only row & column)
+        private static String LAST_LOCATION_TBL = "LAST_LOCATION_TBL";
+
+
 
 
         private static String LatLng = BOTLEFTLAT + ","
@@ -422,6 +503,8 @@ public class DatabaseAdapter{
         private static String CREATE_LOC_STATS_TBL = "CREATE TABLE " +LOCATION_STATS_TBL + "("
                 +LOCATION+" VARCHAR(255) PRIMARY KEY,"+TOTAL_TIME+ " INTEGER DEFAULT 0,"
                 +CURRENT_DAY_TIME+ " INTEGER DEFAULT 0);";
+        private static String CREATE_LAST_LOCATION_TBL = "CREATE TABLE " +LAST_LOCATION_TBL + " ("
+                +LOCATION+" VARCHAR(255))";
 
 //        private static String GET_TIME_QUERY = "SELECT "+TOTAL_TIME+ ","+CURRENT_DAY_TIME+ " FROM " +
 //                LOCATION_STATS_TBL;
@@ -431,7 +514,7 @@ public class DatabaseAdapter{
         // context passed in from OuterClass which is passed in from the activity
         // Third parameter specifies whether the column can be null.
         public MyDatabaseHelper(Context context){
-            super(context, DATABASE_NAME, null, DATABASE_VERSION);
+            super(context,DATABASE_NAME, null, DATABASE_VERSION);
             this.context = context; // Save the context being passed in
             Log.d(TAG, "MyDatabaseHelper: Constructor Called");
         }
@@ -441,10 +524,15 @@ public class DatabaseAdapter{
         @Override
         public void onCreate(SQLiteDatabase db) {
             Toast.makeText(context, "ONCREATE", Toast.LENGTH_SHORT).show();
+            Log.d(TAG, "onCreate: SQLITEDATABASE");
             try {
                 //Create the tables
                 db.execSQL(CREATE_GEOTABLE);
                 db.execSQL(CREATE_LOC_STATS_TBL);
+                db.execSQL(CREATE_LAST_LOCATION_TBL);
+                //insertLastLocation("DEFAULT"); // Insert blank default row for last location
+                // so that updates can be made to that
+
 
             }catch(SQLException e){
                 Log.d(TAG, "onCreate: " + e);

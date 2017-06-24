@@ -3,7 +3,11 @@ package theappfoundry.lifestyles;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
+import android.os.Bundle;
 import android.os.IBinder;
+import android.os.Message;
+import android.os.Messenger;
+import android.os.RemoteException;
 import android.provider.ContactsContract;
 import android.support.annotation.IntDef;
 import android.support.annotation.NonNull;
@@ -19,6 +23,7 @@ import com.google.android.gms.location.GeofencingRequest;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.model.LatLng;
 
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -31,6 +36,7 @@ public class DatabaseService extends Service implements ResultCallback<Status> {
 
     public static GoogleApiClient mGoogleApiClient;
 
+    private Messenger messenger; // To communicate with the UI thread
 
     private String TAG = "DatabaseService: ";
 
@@ -70,10 +76,14 @@ public class DatabaseService extends Service implements ResultCallback<Status> {
         String functionName = intent.getExtras().getString("functionName");
         // Get which function is wanting to be ran in the thread
 
+        messenger = intent.getParcelableExtra("Handler");
+
         // For each task that gets sent through this service, a new thread will be made an access
         // to the old thread will be gone. (it will still finish executing though)
         Thread databaseThread = new Thread(new DatabaseRunnable(functionName));
         databaseThread.start();
+
+
 
 
         // START_NOT_STICKY Service is not restarted in the event that it is destroyed.
@@ -99,6 +109,10 @@ public class DatabaseService extends Service implements ResultCallback<Status> {
                     if(populateGeofenceList())
                         addGeofences();
                     break;
+                case Constants.READ_IN_SPINNER:
+                    readInSpinner();
+                    break;
+
 
             }
         }
@@ -219,5 +233,29 @@ public class DatabaseService extends Service implements ResultCallback<Status> {
     public void onDestroy() {
         Log.d(TAG, "onDestroy: SERVICE");
         super.onDestroy();
+    }
+
+
+
+    public void readInSpinner(){
+
+        // Gets a string[] of all the locations from the database
+        String[] allLocations = databaseAdapter.getAllLocations();
+
+        // obtain msg from global Message pool. Store data in bundle, then in Message
+        Message msg = Message.obtain();
+        Bundle bundle = new Bundle();
+        bundle.putStringArray(Constants.READ_IN_SPINNER,allLocations);
+        bundle.putString(Constants.KEY, Constants.READ_IN_SPINNER);
+        msg.setData(bundle);
+
+        // Use messenger to enqueue a message to the message queue of the UI thread
+        try {
+            messenger.send(msg);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+
+
     }
 }

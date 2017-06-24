@@ -31,4 +31,11 @@
     <string name="app_label">cronos</string>
 
 
+    <string-array name= "Location_Array">
+        <item>Map</item>
+        <item>Hybrid</item>
+        <item>Satellite</item>
+    </string-array>
+
+
 </resources>
